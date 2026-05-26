@@ -1,4 +1,4 @@
-# sedex.llc
+# sedx.llc
 
 Marketing site for SEDX, LLC (operating as RLTW) — a static landing page that
 catalogs every app in the suite and the unified privacy policy.
@@ -14,7 +14,7 @@ catalogs every app in the suite and the unified privacy policy.
 ## Hosting
 
 Served by GitHub Pages from the `main` branch. The `CNAME` file pins the site
-to `sedex.llc`. DNS for `sedex.llc` is managed at Spaceship:
+to `sedx.llc`. DNS for `sedx.llc` is managed at Spaceship:
 
 - Four apex `A` records pointing to GitHub Pages:
   - `185.199.108.153`, `185.199.109.153`, `185.199.110.153`, `185.199.111.153`
