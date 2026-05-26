@@ -1,0 +1,362 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SEDX, LLC</title>
+<meta name="description" content="SEDX, LLC — the company behind RLTW. Reference, training, and team-coordination apps for the military, civilian, and athletic communities.">
+<style>
+  :root {
+    --bg: #0A0A0A;
+    --bg-card: #14130F;
+    --bg-card-hover: #1A1814;
+    --border: #2A2620;
+    --text: #E8DCC0;
+    --text-dim: #9C9079;
+    --gold: #C9A24A;
+    --gold-hover: #E0B45A;
+    --muted: #5A5448;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 64px 24px 96px; }
+
+  header { margin-bottom: 64px; }
+  .brand {
+    font-size: 44px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin: 0 0 8px;
+    color: var(--text);
+  }
+  .brand .gold { color: var(--gold); }
+  .tagline {
+    color: var(--text-dim);
+    font-size: 18px;
+    margin: 0 0 24px;
+  }
+  .intro {
+    color: var(--text-dim);
+    max-width: 680px;
+    font-size: 16px;
+    margin: 0;
+  }
+  .intro strong { color: var(--text); font-weight: 600; }
+
+  h2 {
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 2.5px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 64px 0 24px;
+    padding-bottom: 12px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 22px 22px 20px;
+    display: flex;
+    flex-direction: column;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .card:hover { background: var(--bg-card-hover); border-color: #3A342A; }
+
+  .card-icon {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    margin-bottom: 16px;
+    display: block;
+    background: #0A0A0A;
+    object-fit: cover;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+  .card-icon-placeholder {
+    width: 72px;
+    height: 72px;
+    border-radius: 16px;
+    margin-bottom: 16px;
+    background: linear-gradient(135deg, #1F1B14, #2A2620);
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+  }
+
+  .card-name {
+    font-size: 17px;
+    font-weight: 600;
+    color: var(--text);
+    margin: 0 0 6px;
+  }
+  .card-desc {
+    color: var(--text-dim);
+    font-size: 14px;
+    margin: 0 0 18px;
+    flex-grow: 1;
+  }
+
+  .btn {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.5px;
+    padding: 9px 14px;
+    border-radius: 6px;
+    text-decoration: none;
+    text-align: center;
+    transition: background 0.15s, color 0.15s, border-color 0.15s;
+    align-self: flex-start;
+  }
+  .btn-soon {
+    background: transparent;
+    color: var(--muted);
+    border: 1px solid var(--border);
+    cursor: default;
+    pointer-events: none;
+  }
+
+  .store-badges {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .store-badge {
+    display: block;
+    transition: opacity 0.15s;
+    height: 44px;
+    width: 132px;
+  }
+  .store-badge img {
+    display: block;
+    height: 100%;
+    width: 100%;
+    object-fit: contain;
+  }
+  a.store-badge:hover { opacity: 0.85; }
+  .store-badge.placeholder {
+    opacity: 0.38;
+    cursor: default;
+    pointer-events: none;
+  }
+
+  footer {
+    margin-top: 96px;
+    padding-top: 32px;
+    border-top: 1px solid var(--border);
+    color: var(--muted);
+    font-size: 13px;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 16px;
+  }
+  footer a { color: var(--text-dim); text-decoration: none; }
+  footer a:hover { color: var(--gold); }
+
+  @media (max-width: 560px) {
+    .wrap { padding: 48px 20px 64px; }
+    .brand { font-size: 34px; }
+    h2 { margin-top: 48px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header>
+    <h1 class="brand">SEDX<span class="gold">,</span> LLC</h1>
+    <p class="tagline">Doing business as RLTW.</p>
+    <p class="intro">
+      SEDX, LLC builds focused mobile reference and training apps — pocket-sized field manuals, professional reference, and team-coordination tools.
+      Built for people who need answers fast, offline, and without distraction.
+    </p>
+  </header>
+
+  <section>
+    <h2>Military &amp; Service</h2>
+    <div class="grid">
+
+      <div class="card">
+        <img class="card-icon" src="icons/ranger.png" alt="Ranger Handbook icon">
+        <h3 class="card-name">Ranger Handbook</h3>
+        <p class="card-desc">The Ranger Handbook (TC 3-21.76), interactive and offline. Field-ready for tactical reference.</p>
+        <div class="store-badges">
+          <a class="store-badge" href="https://play.google.com/store/apps/details?id=com.rltw.rangerhandbook" aria-label="Get it on Google Play">
+            <img src="badges/google-play.png" alt="Get it on Google Play">
+          </a>
+          <span class="store-badge placeholder" title="Coming soon to the App Store" aria-label="Coming soon to the App Store">
+            <img src="badges/app-store.svg" alt="Download on the App Store — coming soon">
+          </span>
+        </div>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/cadet.png" alt="Cadet Handbook icon">
+        <h3 class="card-name">Cadet Handbook</h3>
+        <p class="card-desc">Bugle Notes and cadet knowledge — study, search, and recite. Built for cadets, by the standard.</p>
+        <div class="store-badges">
+          <a class="store-badge" href="https://play.google.com/store/apps/details?id=com.rltw.cadethandbook" aria-label="Get it on Google Play">
+            <img src="badges/google-play.png" alt="Get it on Google Play">
+          </a>
+          <span class="store-badge placeholder" title="Coming soon to the App Store" aria-label="Coming soon to the App Store">
+            <img src="badges/app-store.svg" alt="Download on the App Store — coming soon">
+          </span>
+        </div>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/survival.png" alt="Army Survival Manual icon">
+        <h3 class="card-name">Army Survival Manual</h3>
+        <p class="card-desc">The complete U.S. Army survival field manual — searchable, offline, and built for the field.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/branch-infantry.png" alt="Army Infantry Handbook icon">
+        <h3 class="card-name">Army Infantry Handbook</h3>
+        <p class="card-desc">The Infantry branch handbook — tactics, weapons, and small-unit doctrine, offline and field-ready.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/branch-armor.png" alt="Army Armor Handbook icon">
+        <h3 class="card-name">Army Armor Handbook</h3>
+        <p class="card-desc">The Armor branch handbook — mounted maneuver, gunnery, and combined arms reference.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/branch-aviation.png" alt="Army Aviation Handbook icon">
+        <h3 class="card-name">Army Aviation Handbook</h3>
+        <p class="card-desc">The Aviation branch handbook — rotary-wing operations, aircrew coordination, and air-ground integration.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/branch-fieldartillery.png" alt="Army Field Artillery Handbook icon">
+        <h3 class="card-name">Army Field Artillery Handbook</h3>
+        <p class="card-desc">The Field Artillery branch handbook — fire support, gunnery, and targeting reference.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/branch-medical.png" alt="Army Medical Handbook icon">
+        <h3 class="card-name">Army Medical Handbook</h3>
+        <p class="card-desc">The Medical Corps handbook — combat casualty care, TCCC, and field medicine reference.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/branch-militarypolice.png" alt="Army Military Police Handbook icon">
+        <h3 class="card-name">Army Military Police Handbook</h3>
+        <p class="card-desc">The Military Police branch handbook — law enforcement, detainee operations, and security reference.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/fmlibrary.png" alt="FM Library icon">
+        <h3 class="card-name">FM Library</h3>
+        <p class="card-desc">A searchable library of U.S. Army Field Manuals and doctrinal publications, all in one place.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+    </div>
+  </section>
+
+  <section>
+    <h2>Professional &amp; Civilian</h2>
+    <div class="grid">
+
+      <div class="card">
+        <img class="card-icon" src="icons/videotimer.png" alt="Video Timer icon">
+        <h3 class="card-name">Video Timer</h3>
+        <p class="card-desc">Record video with a live stopwatch overlay and split times. Built for athletes and coaches.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/helicopter.png" alt="Helicopter Pilot icon">
+        <h3 class="card-name">Helicopter Pilot</h3>
+        <p class="card-desc">The FAA Helicopter Flying Handbook with flashcards, checklists, and study tools.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/coxswain.png" alt="Coxswain HQ icon">
+        <h3 class="card-name">Coxswain HQ</h3>
+        <p class="card-desc">Navigation Rules, Boat Crew Seamanship, signal codes, and PQS reference — fully offline.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/mutcd.png" alt="MUTCD 11th Edition icon">
+        <h3 class="card-name">MUTCD 11th Edition</h3>
+        <p class="card-desc">The FHWA Manual on Uniform Traffic Control Devices, with a searchable library of all 945 signs.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/robertsrules.png" alt="Robert's Rules icon">
+        <h3 class="card-name">Robert's Rules</h3>
+        <p class="card-desc">Robert's Rules of Order with a motion finder, voting calculator, and meeting timer.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/abrahamic.png" alt="Abrahamic Reader icon">
+        <h3 class="card-name">Abrahamic Reader</h3>
+        <p class="card-desc">Read the Bible, Torah, and Quran side by side, with cross-referenced passages across all three.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <div class="card-icon-placeholder">TH</div>
+        <h3 class="card-name">TrackHQ</h3>
+        <p class="card-desc">Track &amp; field meet management with live results — modern, fast, and built for the sport.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/teamhq.png" alt="TeamHQ icon">
+        <h3 class="card-name">TeamHQ</h3>
+        <p class="card-desc">Team coordination and sideline management for coaches, captains, and crews.</p>
+        <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+    </div>
+  </section>
+
+  <footer>
+    <div>&copy; 2026 SEDX, LLC. All rights reserved.</div>
+    <div>
+      <a href="./privacy.html">Privacy policy</a>
+      &nbsp;·&nbsp;
+      <a href="mailto:rltw.dev@gmail.com">rltw.dev@gmail.com</a>
+    </div>
+  </footer>
+
+</div>
+</body>
+</html>
