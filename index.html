@@ -24,12 +24,25 @@
     line-height: 1.55;
     min-height: 100vh;
   }
-  .wrap { max-width: 1040px; margin: 0 auto; padding: 64px 24px 96px; position: relative; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 64px 24px 96px; }
 
+  header { margin-bottom: 64px; }
+  .header-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .brand {
+    font-size: 44px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    margin: 0;
+    color: var(--text);
+  }
   .signin {
-    position: absolute;
-    top: 24px;
-    right: 24px;
+    flex-shrink: 0;
     font-size: 12px;
     font-weight: 600;
     letter-spacing: 1.2px;
@@ -42,15 +55,6 @@
     transition: color 0.15s, border-color 0.15s;
   }
   .signin:hover { color: var(--gold); border-color: var(--gold); }
-
-  header { margin-bottom: 64px; }
-  .brand {
-    font-size: 44px;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    margin: 0 0 8px;
-    color: var(--text);
-  }
   .brand .gold { color: var(--gold); }
   .tagline {
     color: var(--text-dim);
@@ -202,10 +206,11 @@
 <body>
 <div class="wrap">
 
-  <a class="signin" href="/scratchpad/">Sign in</a>
-
   <header>
-    <h1 class="brand">SEDX<span class="gold">,</span> LLC</h1>
+    <div class="header-top">
+      <h1 class="brand">SEDX<span class="gold">,</span> LLC</h1>
+      <a class="signin" href="/scratchpad/">Sign in</a>
+    </div>
     <p class="tagline">Doing business as RLTW.</p>
     <p class="intro">
       SEDX, LLC builds focused mobile reference and training apps — pocket-sized field manuals, professional reference, and team-coordination tools.
