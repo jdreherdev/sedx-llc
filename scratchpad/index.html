@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Scratchpad — SEDX, LLC</title>
+<style>
+  :root {
+    --bg: #0A0A0A;
+    --bg-card: #14130F;
+    --bg-card-hover: #1A1814;
+    --border: #2A2620;
+    --text: #E8DCC0;
+    --text-dim: #9C9079;
+    --gold: #C9A24A;
+    --gold-hover: #E0B45A;
+    --muted: #5A5448;
+    --danger: #C44;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    line-height: 1.55;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 48px 24px 96px; }
+
+  .crumb {
+    display: inline-block;
+    color: var(--text-dim);
+    font-size: 13px;
+    text-decoration: none;
+    margin-bottom: 28px;
+  }
+  .crumb:hover { color: var(--gold); }
+  .crumb::before { content: "← "; }
+
+  .titlebar {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 32px;
+  }
+  h1 {
+    font-size: 32px;
+    margin: 0;
+    color: var(--text);
+    letter-spacing: 0.3px;
+  }
+  #status {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+  }
+  #status.error { color: var(--danger); }
+
+  h2 {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin: 36px 0 14px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  textarea#scratchpad {
+    width: 100%;
+    min-height: 220px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 14px 16px;
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.55;
+    resize: vertical;
+    transition: border-color 0.15s;
+  }
+  textarea#scratchpad:focus {
+    outline: none;
+    border-color: var(--gold);
+  }
+
+  .ideas {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 10px;
+  }
+  .ideas li {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 8px 10px 8px 4px;
+    margin-bottom: 8px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+  .ideas li.sortable-ghost { opacity: 0.35; }
+  .ideas li.sortable-chosen { border-color: var(--gold); }
+  .ideas li.sortable-drag { background: var(--bg-card-hover); }
+
+  .handle {
+    cursor: grab;
+    color: var(--muted);
+    font-size: 18px;
+    user-select: none;
+    padding: 4px 6px;
+    line-height: 1;
+  }
+  .handle:active { cursor: grabbing; }
+  .handle:hover { color: var(--gold); }
+
+  .ideas input[type="text"] {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-size: 15px;
+    padding: 6px 0;
+    font-family: inherit;
+    min-width: 0;
+  }
+  .ideas input[type="text"]:focus { outline: none; }
+
+  .del {
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-size: 20px;
+    cursor: pointer;
+    padding: 2px 8px;
+    line-height: 1;
+    transition: color 0.15s;
+  }
+  .del:hover { color: var(--danger); }
+
+  .add-btn {
+    background: transparent;
+    border: 1px dashed var(--border);
+    color: var(--text-dim);
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    width: 100%;
+    font-family: inherit;
+    transition: border-color 0.15s, color 0.15s;
+  }
+  .add-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  .empty {
+    color: var(--muted);
+    font-size: 14px;
+    font-style: italic;
+    padding: 8px 4px 16px;
+  }
+
+  @media (max-width: 560px) {
+    .wrap { padding: 32px 16px 64px; }
+    h1 { font-size: 26px; }
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <a class="crumb" href="/">SEDX, LLC</a>
+
+  <div class="titlebar">
+    <h1>Scratchpad</h1>
+    <span id="status">Loading…</span>
+  </div>
+
+  <h2>Notes</h2>
+  <textarea id="scratchpad" placeholder="Stream-of-consciousness notes — saved automatically."></textarea>
+
+  <h2>Ideas (drag to reorder by priority)</h2>
+  <ul id="ideas" class="ideas"></ul>
+  <p id="empty" class="empty" hidden>No ideas yet. Add one below.</p>
+  <button id="add-idea" class="add-btn">+ Add idea</button>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" integrity="sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM" crossorigin="anonymous"></script>
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const STATUS = $('status');
+  const PAD = $('scratchpad');
+  const LIST = $('ideas');
+  const EMPTY = $('empty');
+
+  let state = { scratchpad: '', ideas: [] };
+  let saveTimer = null;
+  let inFlight = null;
+
+  const setStatus = (msg, isError = false) => {
+    STATUS.textContent = msg;
+    STATUS.classList.toggle('error', isError);
+  };
+
+  const updateEmpty = () => {
+    EMPTY.hidden = state.ideas.length > 0;
+  };
+
+  const uid = () =>
+    (crypto.randomUUID ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`);
+
+  const escapeAttr = s => String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
+
+  const renderIdeas = () => {
+    LIST.innerHTML = '';
+    for (const idea of state.ideas) {
+      const li = document.createElement('li');
+      li.dataset.id = idea.id;
+      li.innerHTML = `
+        <span class="handle" title="Drag to reorder">⋮⋮</span>
+        <input type="text" value="${escapeAttr(idea.text)}" placeholder="Idea…">
+        <button class="del" aria-label="Delete idea">×</button>
+      `;
+      li.querySelector('input').addEventListener('input', e => {
+        idea.text = e.target.value;
+        queueSave();
+      });
+      li.querySelector('.del').addEventListener('click', () => {
+        state.ideas = state.ideas.filter(x => x.id !== idea.id);
+        renderIdeas();
+        queueSave();
+      });
+      LIST.appendChild(li);
+    }
+    updateEmpty();
+  };
+
+  const queueSave = () => {
+    setStatus('Saving…');
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(save, 600);
+  };
+
+  const save = async () => {
+    if (inFlight) await inFlight.catch(() => {});
+    inFlight = (async () => {
+      try {
+        const res = await fetch('/api/scratchpad', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(state),
+        });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        setStatus('Saved');
+      } catch (e) {
+        setStatus(`Save failed: ${e.message}`, true);
+      } finally {
+        inFlight = null;
+      }
+    })();
+    return inFlight;
+  };
+
+  const load = async () => {
+    setStatus('Loading…');
+    try {
+      const res = await fetch('/api/scratchpad');
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      state = {
+        scratchpad: typeof data.scratchpad === 'string' ? data.scratchpad : '',
+        ideas: Array.isArray(data.ideas) ? data.ideas : [],
+      };
+      PAD.value = state.scratchpad;
+      renderIdeas();
+      setStatus('Saved');
+    } catch (e) {
+      setStatus(`Failed to load: ${e.message}`, true);
+    }
+  };
+
+  PAD.addEventListener('input', () => {
+    state.scratchpad = PAD.value;
+    queueSave();
+  });
+
+  $('add-idea').addEventListener('click', () => {
+    state.ideas.push({ id: uid(), text: '' });
+    renderIdeas();
+    const last = LIST.lastElementChild?.querySelector('input');
+    if (last) last.focus();
+    queueSave();
+  });
+
+  window.addEventListener('beforeunload', () => {
+    if (saveTimer || inFlight) {
+      try { navigator.sendBeacon?.('/api/scratchpad', new Blob([JSON.stringify(state)], { type: 'application/json' })); } catch {}
+    }
+  });
+
+  Sortable.create(LIST, {
+    handle: '.handle',
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    chosenClass: 'sortable-chosen',
+    dragClass: 'sortable-drag',
+    onEnd: () => {
+      const order = Array.from(LIST.children).map(li => li.dataset.id);
+      state.ideas.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id));
+      queueSave();
+    },
+  });
+
+  load();
+})();
+</script>
+</body>
+</html>
