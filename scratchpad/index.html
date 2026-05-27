@@ -297,10 +297,12 @@
   <p id="memory-meta" class="meta">Loading…</p>
   <p class="memory-actions">Pushed by Claude via the Cloudflare API — ask Claude to refresh.</p>
   <div id="memory-files"></div>
+  <button id="download-memory" class="add-btn" hidden>↓ Download all as .zip</button>
 
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" integrity="sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM" crossorigin="anonymous"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js" integrity="sha384-+mbV2IY1Zk/X1p/nWllGySJSUN8uMs+gUAN10Or95UBH0fpj6GfKgPmgC5EXieXG" crossorigin="anonymous"></script>
 <script>
 (() => {
   const $ = id => document.getElementById(id);
@@ -312,8 +314,10 @@
   const FILES_EMPTY = $('files-empty');
   const MEMORY_META = $('memory-meta');
   const MEMORY_FILES = $('memory-files');
+  const DOWNLOAD_BTN = $('download-memory');
 
   let state = { scratchpad: '', ideas: [], files: [] };
+  let memorySnapshot = null;
   let saveTimer = null;
   let inFlight = null;
 
@@ -442,11 +446,14 @@
       const data = await res.json();
       if (!data.snapshotAt) {
         MEMORY_META.textContent = 'No memory snapshot yet — ask Claude to push one.';
+        DOWNLOAD_BTN.hidden = true;
         return;
       }
+      memorySnapshot = data;
       const date = new Date(data.snapshotAt).toLocaleString();
       const count = (data.files || []).length;
       MEMORY_META.textContent = `Last snapshot: ${date} — ${count} file${count === 1 ? '' : 's'}`;
+      DOWNLOAD_BTN.hidden = count === 0;
       MEMORY_FILES.innerHTML = '';
       for (const f of (data.files || [])) {
         const details = document.createElement('details');
@@ -504,6 +511,39 @@
     const last = FILES.lastElementChild?.querySelector('.file-name');
     if (last) last.focus();
     queueSave();
+  });
+
+  DOWNLOAD_BTN.addEventListener('click', async () => {
+    if (!memorySnapshot || !memorySnapshot.files?.length) return;
+    if (typeof JSZip === 'undefined') {
+      alert('Zip library not loaded yet — try again in a second.');
+      return;
+    }
+    const originalLabel = DOWNLOAD_BTN.textContent;
+    DOWNLOAD_BTN.disabled = true;
+    DOWNLOAD_BTN.textContent = 'Packaging…';
+    try {
+      const zip = new JSZip();
+      for (const f of memorySnapshot.files) {
+        zip.file(f.name, f.content);
+      }
+      const blob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE' });
+      const stamp = (memorySnapshot.snapshotAt || new Date().toISOString())
+        .replace(/[:.]/g, '-').slice(0, 19);
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `memory-snapshot-${stamp}.zip`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      alert(`Download failed: ${e.message}`);
+    } finally {
+      DOWNLOAD_BTN.disabled = false;
+      DOWNLOAD_BTN.textContent = originalLabel;
+    }
   });
 
   window.addEventListener('beforeunload', () => {
