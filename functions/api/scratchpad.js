@@ -11,9 +11,9 @@
 // JSON document for this single-user workspace.
 
 const KV_KEY = 'data';
-const MAX_BYTES = 200_000; // 200 KB cap on the document
+const MAX_BYTES = 2_000_000; // 2 MB cap on the document
 
-const DEFAULT_DOC = { scratchpad: '', ideas: [] };
+const DEFAULT_DOC = { scratchpad: '', ideas: [], files: [] };
 
 const json = (body, init = {}) =>
   new Response(JSON.stringify(body), {
@@ -111,6 +111,15 @@ export async function onRequest({ request, env }) {
             .map(x => ({
               id: typeof x.id === 'string' ? x.id : crypto.randomUUID(),
               text: typeof x.text === 'string' ? x.text : '',
+            }))
+        : [],
+      files: Array.isArray(doc.files)
+        ? doc.files
+            .filter(x => x && typeof x === 'object')
+            .map(x => ({
+              id: typeof x.id === 'string' ? x.id : crypto.randomUUID(),
+              name: typeof x.name === 'string' ? x.name : '',
+              content: typeof x.content === 'string' ? x.content : '',
             }))
         : [],
     };

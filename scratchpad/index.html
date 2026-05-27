@@ -166,6 +166,104 @@
     padding: 8px 4px 16px;
   }
 
+  /* Files section */
+  .files-list { list-style: none; padding: 0; margin: 0 0 10px; }
+  .files-list li {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    margin-bottom: 12px;
+  }
+  .file-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 8px;
+  }
+  .file-name {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    color: var(--text);
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    padding: 4px 0;
+    min-width: 0;
+  }
+  .file-name:focus { outline: none; border-color: var(--gold); }
+  .file-content {
+    width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text);
+    padding: 10px 12px;
+    font-family: ui-monospace, "SF Mono", Monaco, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+    resize: vertical;
+    min-height: 100px;
+  }
+  .file-content:focus { outline: none; border-color: var(--gold); }
+
+  /* Memory snapshot */
+  .meta {
+    color: var(--muted);
+    font-size: 13px;
+    margin: 0 0 14px;
+  }
+  .memory-actions {
+    color: var(--muted);
+    font-size: 12px;
+    font-style: italic;
+    margin: 0 0 14px;
+  }
+  details.memory-file {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 6px;
+    overflow: hidden;
+  }
+  details.memory-file > summary {
+    cursor: pointer;
+    padding: 9px 14px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--text-dim);
+    list-style: none;
+    user-select: none;
+    transition: color 0.15s, background 0.15s;
+  }
+  details.memory-file > summary::-webkit-details-marker { display: none; }
+  details.memory-file > summary::before {
+    content: "▶";
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 10px;
+    color: var(--muted);
+    transition: transform 0.15s;
+  }
+  details.memory-file[open] > summary::before { transform: rotate(90deg); }
+  details.memory-file > summary:hover { color: var(--text); background: var(--bg-card-hover); }
+  details.memory-file > pre {
+    margin: 0;
+    padding: 12px 16px 14px;
+    font-family: ui-monospace, "SF Mono", Monaco, Menlo, Consolas, monospace;
+    font-size: 12.5px;
+    line-height: 1.5;
+    color: var(--text);
+    background: var(--bg);
+    border-top: 1px solid var(--border);
+    white-space: pre-wrap;
+    word-break: break-word;
+    max-height: 480px;
+    overflow-y: auto;
+  }
+
   @media (max-width: 560px) {
     .wrap { padding: 32px 16px 64px; }
     h1 { font-size: 26px; }
@@ -190,6 +288,16 @@
   <p id="empty" class="empty" hidden>No ideas yet. Add one below.</p>
   <button id="add-idea" class="add-btn">+ Add idea</button>
 
+  <h2>Files (free-form backup)</h2>
+  <ul id="files" class="files-list"></ul>
+  <p id="files-empty" class="empty" hidden>No files yet. Add one below — paste any text you want backed up.</p>
+  <button id="add-file" class="add-btn">+ Add file</button>
+
+  <h2>Memory snapshot</h2>
+  <p id="memory-meta" class="meta">Loading…</p>
+  <p class="memory-actions">Pushed by Claude via the Cloudflare API — ask Claude to refresh.</p>
+  <div id="memory-files"></div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.2/Sortable.min.js" integrity="sha384-BSxuMLxX+FCbTdYec3TbXlnMGEEM2QXTFdtDaveen71o+jswm2J36+xFqp8k4VHM" crossorigin="anonymous"></script>
@@ -200,8 +308,12 @@
   const PAD = $('scratchpad');
   const LIST = $('ideas');
   const EMPTY = $('empty');
+  const FILES = $('files');
+  const FILES_EMPTY = $('files-empty');
+  const MEMORY_META = $('memory-meta');
+  const MEMORY_FILES = $('memory-files');
 
-  let state = { scratchpad: '', ideas: [] };
+  let state = { scratchpad: '', ideas: [], files: [] };
   let saveTimer = null;
   let inFlight = null;
 
@@ -212,6 +324,7 @@
 
   const updateEmpty = () => {
     EMPTY.hidden = state.ideas.length > 0;
+    FILES_EMPTY.hidden = state.files.length > 0;
   };
 
   const uid = () =>
@@ -269,6 +382,88 @@
     return inFlight;
   };
 
+  const renderFiles = () => {
+    FILES.innerHTML = '';
+    for (const file of state.files) {
+      const li = document.createElement('li');
+      li.dataset.id = file.id;
+
+      const header = document.createElement('div');
+      header.className = 'file-header';
+
+      const nameInput = document.createElement('input');
+      nameInput.className = 'file-name';
+      nameInput.type = 'text';
+      nameInput.placeholder = 'filename';
+      nameInput.value = file.name;
+      nameInput.addEventListener('input', e => {
+        file.name = e.target.value;
+        queueSave();
+      });
+
+      const delBtn = document.createElement('button');
+      delBtn.className = 'del';
+      delBtn.setAttribute('aria-label', 'Delete file');
+      delBtn.textContent = '×';
+      delBtn.addEventListener('click', () => {
+        if (file.content && !confirm(`Delete "${file.name || 'untitled'}"?`)) return;
+        state.files = state.files.filter(x => x.id !== file.id);
+        renderFiles();
+        updateEmpty();
+        queueSave();
+      });
+
+      header.appendChild(nameInput);
+      header.appendChild(delBtn);
+
+      const textarea = document.createElement('textarea');
+      textarea.className = 'file-content';
+      textarea.placeholder = 'File contents…';
+      textarea.value = file.content;
+      textarea.addEventListener('input', e => {
+        file.content = e.target.value;
+        queueSave();
+      });
+
+      li.appendChild(header);
+      li.appendChild(textarea);
+      FILES.appendChild(li);
+    }
+    updateEmpty();
+  };
+
+  const loadMemory = async () => {
+    try {
+      const res = await fetch('/api/memory');
+      if (!res.ok) {
+        MEMORY_META.textContent = `Memory load failed: HTTP ${res.status}`;
+        return;
+      }
+      const data = await res.json();
+      if (!data.snapshotAt) {
+        MEMORY_META.textContent = 'No memory snapshot yet — ask Claude to push one.';
+        return;
+      }
+      const date = new Date(data.snapshotAt).toLocaleString();
+      const count = (data.files || []).length;
+      MEMORY_META.textContent = `Last snapshot: ${date} — ${count} file${count === 1 ? '' : 's'}`;
+      MEMORY_FILES.innerHTML = '';
+      for (const f of (data.files || [])) {
+        const details = document.createElement('details');
+        details.className = 'memory-file';
+        const summary = document.createElement('summary');
+        summary.textContent = f.name;
+        const pre = document.createElement('pre');
+        pre.textContent = f.content;
+        details.appendChild(summary);
+        details.appendChild(pre);
+        MEMORY_FILES.appendChild(details);
+      }
+    } catch (e) {
+      MEMORY_META.textContent = `Memory load failed: ${e.message}`;
+    }
+  };
+
   const load = async () => {
     setStatus('Loading…');
     try {
@@ -278,13 +473,16 @@
       state = {
         scratchpad: typeof data.scratchpad === 'string' ? data.scratchpad : '',
         ideas: Array.isArray(data.ideas) ? data.ideas : [],
+        files: Array.isArray(data.files) ? data.files : [],
       };
       PAD.value = state.scratchpad;
       renderIdeas();
+      renderFiles();
       setStatus('Saved');
     } catch (e) {
       setStatus(`Failed to load: ${e.message}`, true);
     }
+    loadMemory();
   };
 
   PAD.addEventListener('input', () => {
@@ -296,6 +494,14 @@
     state.ideas.push({ id: uid(), text: '' });
     renderIdeas();
     const last = LIST.lastElementChild?.querySelector('input');
+    if (last) last.focus();
+    queueSave();
+  });
+
+  $('add-file').addEventListener('click', () => {
+    state.files.push({ id: uid(), name: '', content: '' });
+    renderFiles();
+    const last = FILES.lastElementChild?.querySelector('.file-name');
     if (last) last.focus();
     queueSave();
   });
