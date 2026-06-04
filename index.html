@@ -159,6 +159,23 @@
     cursor: default;
     pointer-events: none;
   }
+  .card-actions {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+  }
+  .btn-link {
+    background: transparent;
+    color: var(--gold);
+    border: 1px solid var(--gold);
+  }
+  .btn-link:hover {
+    background: var(--gold);
+    color: var(--bg);
+    border-color: var(--gold);
+  }
 
   .store-badges {
     display: flex;
@@ -409,7 +426,10 @@
         <img class="card-icon" src="icons/teamhq.png" alt="TeamHQ icon">
         <h3 class="card-name">TeamHQ</h3>
         <p class="card-desc">Team coordination and sideline management for coaches, captains, and crews.</p>
-        <a class="btn btn-soon">Coming Soon</a>
+        <div class="card-actions">
+          <a class="btn btn-soon">Coming Soon</a>
+          <a class="btn btn-link" href="https://sideline-hq-web.vercel.app" target="_blank" rel="noopener">Visit Website</a>
+        </div>
       </div>
 
       <div class="card">
