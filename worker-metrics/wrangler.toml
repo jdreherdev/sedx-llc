@@ -1,0 +1,22 @@
+# Daily Worker that refreshes installs / ratings / revenue for the dashboard.
+# Deployed separately from the Pages site and the 6h build Worker.
+#   cd SEDX-site/worker-metrics && npx wrangler deploy
+name = "sedx-dashboard-metrics"
+main = "src/worker.js"
+compatibility_date = "2025-01-01"
+
+# Once a day at 05:30 UTC (these numbers move at most daily).
+[triggers]
+crons = ["30 5 * * *"]
+
+[[kv_namespaces]]
+binding = "SCRATCHPAD"
+id = "bb2bde463eb9447d89b62a352322d280"
+
+[vars]
+GCS_BUCKET = "pubsite_prod_6833260647245584473"
+
+# Secrets (wrangler secret put, NOT committed):
+#   GOOGLE_SA_KEY      — shared google-service-account.json (same as build Worker)
+#   REVENUECAT_V2_KEY  — RevenueCat v2 secret key (enables revenue; optional)
+#   TRIGGER_SECRET     — enables the manual POST trigger (optional)

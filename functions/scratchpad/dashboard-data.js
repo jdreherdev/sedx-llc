@@ -39,11 +39,32 @@ export async function onRequest({ request, env }) {
 
   if (request.method !== 'GET') return text('Method not allowed', 405);
 
-  const raw = await env.SCRATCHPAD.get(KV_KEY);
-  if (!raw) return json(DEFAULT_DOC);
+  const [rawBuild, rawMetrics] = await Promise.all([
+    env.SCRATCHPAD.get(KV_KEY),
+    env.SCRATCHPAD.get('dashboard-metrics'),
+  ]);
+
+  let doc;
   try {
-    return json(JSON.parse(raw));
+    doc = rawBuild ? JSON.parse(rawBuild) : { ...DEFAULT_DOC };
   } catch {
-    return json(DEFAULT_DOC);
+    doc = { ...DEFAULT_DOC };
   }
+
+  // Merge in the daily metrics snapshot (installs / ratings / revenue) by package.
+  if (rawMetrics) {
+    try {
+      const m = JSON.parse(rawMetrics);
+      const byPkg = Object.fromEntries((m.apps || []).map(a => [a.androidPackage, a]));
+      for (const app of doc.apps || []) {
+        const mx = byPkg[app.androidPackage];
+        if (mx) app.metrics = { activeInstalls: mx.activeInstalls, totalInstalls: mx.totalInstalls, rating: mx.rating, ratingCount: mx.ratingCount };
+      }
+      doc.metrics = { metricsAt: m.metricsAt, summary: m.summary || null, revenue: m.revenue || null };
+    } catch {
+      /* leave build-only doc */
+    }
+  }
+
+  return json(doc);
 }
