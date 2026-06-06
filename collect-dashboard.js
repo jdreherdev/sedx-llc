@@ -27,8 +27,10 @@ const CF_ACCOUNT = '2cc28133149548e6653b30b50396ae9a';
 const CF_NAMESPACE = 'bb2bde463eb9447d89b62a352322d280'; // scratchpad KV
 const CF_TOKEN_FILE = path.join(APPS_DIR, '.cloudflare-token');
 const KV_KEY = 'dashboard';
+const CONFIG_KEY = 'dashboard-config';
 const TRACKS = ['production', 'beta', 'alpha', 'internal'];
 const DRY = process.argv.includes('--dry');
+const EMIT_CONFIG = process.argv.includes('--emit-config');
 
 // ---- tiny https JSON helper -------------------------------------------------
 function req(method, url, { headers = {}, body } = {}) {
@@ -151,9 +153,48 @@ function discoverApps() {
   return apps.sort((a, b) => a.displayName.localeCompare(b.displayName));
 }
 
+// ---- push a JSON value to a KV key -----------------------------------------
+async function putKV(key, value) {
+  const cfToken = (process.env.CF_API_TOKEN || fs.readFileSync(CF_TOKEN_FILE, 'utf8')).trim();
+  const put = await req(
+    'PUT',
+    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/storage/kv/namespaces/${CF_NAMESPACE}/values/${key}`,
+    { headers: { Authorization: `Bearer ${cfToken}`, 'Content-Type': 'text/plain' }, body: JSON.stringify(value) },
+  );
+  if (put.status !== 200) {
+    console.error(`KV push failed (${key}) ${put.status}: ${put.body.slice(0, 300)}`);
+    process.exit(1);
+  }
+}
+
 // ---- main -------------------------------------------------------------------
 (async () => {
   const apps = discoverApps();
+
+  // --emit-config: write the app list (no Play calls) to the dashboard-config
+  // KV key, which the scheduled Cloudflare Worker reads. Run this on the laptop
+  // whenever apps are added/renamed or dev versions should be refreshed.
+  if (EMIT_CONFIG) {
+    const config = {
+      emittedAt: new Date().toISOString(),
+      apps: apps
+        .filter(a => a.androidPackage)
+        .map(a => ({
+          name: a.name,
+          displayName: a.displayName,
+          androidPackage: a.androidPackage,
+          version: a.version,
+        })),
+    };
+    if (DRY) {
+      console.log(JSON.stringify(config, null, 2));
+      return;
+    }
+    await putKV(CONFIG_KEY, config);
+    process.stderr.write(`Emitted ${config.apps.length} apps to KV "${CONFIG_KEY}" at ${config.emittedAt}\n`);
+    return;
+  }
+
   const results = [];
 
   for (const app of apps) {
@@ -204,16 +245,7 @@ function discoverApps() {
     return;
   }
 
-  const cfToken = fs.readFileSync(CF_TOKEN_FILE, 'utf8').trim();
-  const put = await req(
-    'PUT',
-    `https://api.cloudflare.com/client/v4/accounts/${CF_ACCOUNT}/storage/kv/namespaces/${CF_NAMESPACE}/values/${KV_KEY}`,
-    { headers: { Authorization: `Bearer ${cfToken}`, 'Content-Type': 'text/plain' }, body: JSON.stringify(snapshot) },
-  );
-  if (put.status !== 200) {
-    console.error(`KV push failed ${put.status}: ${put.body.slice(0, 300)}`);
-    process.exit(1);
-  }
+  await putKV(KV_KEY, snapshot);
   process.stderr.write(
     `\nPushed ${results.length} apps to KV "${KV_KEY}" at ${snapshot.snapshotAt}\n` +
       `  production: ${snapshot.summary.onProduction}  testing: ${snapshot.summary.onTesting}\n`,

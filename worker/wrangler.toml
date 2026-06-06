@@ -1,0 +1,20 @@
+# Cloudflare Worker that refreshes the SEDX build dashboard on a schedule.
+# Deployed separately from the Pages site (Pages ignores this subdir).
+#   cd SEDX-site/worker && npx wrangler deploy
+name = "sedx-dashboard-cron"
+main = "src/worker.js"
+compatibility_date = "2025-01-01"
+
+# Every 6 hours, on the hour (UTC).
+[triggers]
+crons = ["0 */6 * * *"]
+
+# Same KV namespace the Pages site + scratchpad use ("scratchpad").
+[[kv_namespaces]]
+binding = "SCRATCHPAD"
+id = "bb2bde463eb9447d89b62a352322d280"
+
+# Secrets (set via `wrangler secret put`, NOT committed):
+#   GOOGLE_SA_KEY   — full google-service-account.json contents (the one shared
+#                     play-store-submitted@... key that has access to every app)
+#   TRIGGER_SECRET  — (optional) enables the manual POST trigger endpoint
