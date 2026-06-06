@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Build Dashboard — SEDX, LLC</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<style>
+  :root {
+    --bg: #0A0A0A;
+    --bg-card: #14130F;
+    --bg-card-hover: #1A1814;
+    --border: #2A2620;
+    --text: #E8DCC0;
+    --text-dim: #9C9079;
+    --gold: #C9A24A;
+    --gold-hover: #E0B45A;
+    --muted: #5A5448;
+    --danger: #C44;
+    --beta: #6B8FB5;
+    --alpha: #9B7BB5;
+    --ok: #6FA86F;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    line-height: 1.5;
+    min-height: 100vh;
+  }
+  .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 24px 96px; }
+  .crumb { display: inline-block; color: var(--text-dim); font-size: 13px; text-decoration: none; margin-bottom: 24px; }
+  .crumb:hover { color: var(--gold); }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; }
+  h1 { font-size: 26px; margin: 0; font-weight: 600; letter-spacing: -0.3px; }
+  .meta { color: var(--text-dim); font-size: 13px; }
+  #refresh {
+    background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+    font-size: 13px; padding: 6px 14px; border-radius: 8px; cursor: pointer;
+  }
+  #refresh:hover { border-color: var(--gold); color: var(--gold); }
+
+  .chips { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0 26px; }
+  .chip {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 999px;
+    padding: 6px 14px; font-size: 13px; color: var(--text-dim);
+  }
+  .chip b { color: var(--text); font-weight: 600; }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
+  .card {
+    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;
+  }
+  .card:hover { background: var(--bg-card-hover); }
+  .card.off { opacity: 0.55; }
+  .card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+  .app-name { font-size: 15px; font-weight: 600; color: var(--text); }
+  .app-id { font-size: 11px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .dev-ver { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
+  .dev-ver b { color: var(--gold); font-weight: 600; }
+
+  .tracks { display: flex; flex-direction: column; gap: 6px; }
+  .track {
+    display: flex; align-items: center; gap: 8px; font-size: 12.5px;
+    padding: 5px 8px; border-radius: 7px; background: #00000033; border: 1px solid var(--border);
+  }
+  .tlabel {
+    font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
+    padding: 2px 7px; border-radius: 5px; flex-shrink: 0; min-width: 64px; text-align: center;
+  }
+  .tlabel.production { background: rgba(201,162,74,0.18); color: var(--gold); }
+  .tlabel.beta       { background: rgba(107,143,181,0.18); color: var(--beta); }
+  .tlabel.alpha      { background: rgba(155,123,181,0.18); color: var(--alpha); }
+  .tlabel.internal   { background: rgba(156,144,121,0.15); color: var(--text-dim); }
+  .tver { color: var(--text); font-weight: 500; }
+  .tvc { color: var(--text-dim); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
+  .tstatus { margin-left: auto; font-size: 11px; color: var(--muted); }
+  .tstatus.rollout { color: var(--beta); }
+  .tstatus.halted { color: var(--danger); }
+  .ahead { color: var(--ok); font-size: 11px; }
+
+  .none { color: var(--muted); font-size: 12px; font-style: italic; }
+  .err { color: var(--danger); font-size: 12px; }
+  .empty { color: var(--text-dim); text-align: center; padding: 60px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="crumb" href="/scratchpad/">&larr; Internal</a>
+  <div class="head">
+    <h1>Build Dashboard</h1>
+    <button id="refresh">Refresh</button>
+  </div>
+  <div class="meta" id="snapshot">Loading…</div>
+  <div class="chips" id="chips"></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<script>
+const TRACK_ORDER = ['production', 'beta', 'alpha', 'internal'];
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+function fmtAgo(iso) {
+  if (!iso) return 'never';
+  const d = new Date(iso), now = new Date();
+  const mins = Math.round((now - d) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + ' min ago';
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return hrs + ' hr ago';
+  return Math.round(hrs / 24) + ' day(s) ago';
+}
+
+function trackRow(track, t, devVersion) {
+  const vc = (t.versionCodes || []).join(', ');
+  const ahead = devVersion && t.name && devVersion !== t.name && track === 'production';
+  let status = '';
+  if (t.status === 'inProgress') {
+    const pct = t.userFraction != null ? Math.round(t.userFraction * 100) + '%' : 'rolling out';
+    status = `<span class="tstatus rollout">${pct}</span>`;
+  } else if (t.status === 'halted') {
+    status = `<span class="tstatus halted">halted</span>`;
+  } else if (t.status === 'draft') {
+    status = `<span class="tstatus">draft</span>`;
+  }
+  return `<div class="track">
+    <span class="tlabel ${track}">${track === 'internal' ? 'internal' : track}</span>
+    <span class="tver">${esc(t.name || '—')}</span>
+    <span class="tvc">(${esc(vc)})</span>
+    ${ahead ? '<span class="ahead">dev ahead</span>' : ''}
+    ${status}
+  </div>`;
+}
+
+function card(app) {
+  const liveTracks = TRACK_ORDER.filter(t => app.tracks && app.tracks[t]);
+  let body;
+  if (app.error) {
+    body = `<div class="err">${esc(app.error)}</div>`;
+  } else if (!app.onPlay) {
+    body = `<div class="none">Not on Play (no published edit)</div>`;
+  } else if (!liveTracks.length) {
+    body = `<div class="none">No releases on any track</div>`;
+  } else {
+    body = `<div class="tracks">${liveTracks.map(t => trackRow(t, app.tracks[t], app.version)).join('')}</div>`;
+  }
+  return `<div class="card ${liveTracks.length ? '' : 'off'}">
+    <div class="card-top">
+      <div>
+        <div class="app-name">${esc(app.displayName)}</div>
+        <div class="app-id">${esc(app.androidPackage || app.appId)}</div>
+      </div>
+      <div class="dev-ver">dev <b>v${esc(app.version || '?')}</b></div>
+    </div>
+    ${body}
+  </div>`;
+}
+
+async function load() {
+  const grid = document.getElementById('grid');
+  document.getElementById('snapshot').textContent = 'Loading…';
+  try {
+    const res = await fetch('/api/dashboard', { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const doc = await res.json();
+    const apps = doc.apps || [];
+    if (!apps.length) {
+      document.getElementById('snapshot').textContent = 'No snapshot yet — run the collector.';
+      grid.innerHTML = `<div class="empty">No data. Run <code>node SEDX-site/collect-dashboard.js</code> on the laptop to populate this dashboard.</div>`;
+      document.getElementById('chips').innerHTML = '';
+      return;
+    }
+    const s = doc.summary || {};
+    document.getElementById('snapshot').textContent =
+      `Snapshot ${fmtAgo(doc.snapshotAt)} · ${new Date(doc.snapshotAt).toLocaleString()}`;
+    document.getElementById('chips').innerHTML =
+      `<span class="chip"><b>${s.total ?? apps.length}</b> apps</span>` +
+      `<span class="chip"><b>${s.onProduction ?? 0}</b> in production</span>` +
+      `<span class="chip"><b>${s.onTesting ?? 0}</b> in testing</span>`;
+    grid.innerHTML = apps.map(card).join('');
+  } catch (e) {
+    document.getElementById('snapshot').textContent = 'Failed to load: ' + e.message;
+  }
+}
+
+document.getElementById('refresh').addEventListener('click', load);
+load();
+</script>
+</body>
+</html>
