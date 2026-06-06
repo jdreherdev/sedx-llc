@@ -72,6 +72,11 @@ async function getGoogleToken(sa) {
 }
 
 // ---- Play track status for one package -------------------------------------
+// Two subrequests per app (create edit + list tracks). We deliberately do NOT
+// DELETE/abandon the edit: the free Workers plan caps a single invocation at 50
+// subrequests, and a 3rd call per app would blow that budget at ~17 apps. The
+// edits are read-only drafts we never commit, and Play expires them on its own.
+// (The laptop collector still abandons them — it has no subrequest limit.)
 async function getPlayTracks(token, pkg) {
   const base = `https://androidpublisher.googleapis.com/androidpublisher/v3/applications/${pkg}`;
   const auth = { Authorization: `Bearer ${token}` };
@@ -81,24 +86,20 @@ async function getPlayTracks(token, pkg) {
   if (!edit.ok) throw new Error(`edit ${edit.status}: ${(await edit.text()).slice(0, 160)}`);
   const editId = (await edit.json()).id;
 
-  try {
-    const tr = await fetch(`${base}/edits/${editId}/tracks`, { headers: auth });
-    if (!tr.ok) throw new Error(`tracks ${tr.status}: ${(await tr.text()).slice(0, 160)}`);
-    const out = {};
-    for (const t of (await tr.json()).tracks || []) {
-      const rel = (t.releases || []).find(r => (r.versionCodes || []).length) || (t.releases || [])[0];
-      if (!rel) continue;
-      out[t.track] = {
-        versionCodes: rel.versionCodes || [],
-        name: rel.name || null,
-        status: rel.status || null,
-        userFraction: rel.userFraction != null ? rel.userFraction : null,
-      };
-    }
-    return { onPlay: true, tracks: out };
-  } finally {
-    await fetch(`${base}/edits/${editId}`, { method: 'DELETE', headers: auth }).catch(() => {});
+  const tr = await fetch(`${base}/edits/${editId}/tracks`, { headers: auth });
+  if (!tr.ok) throw new Error(`tracks ${tr.status}: ${(await tr.text()).slice(0, 160)}`);
+  const out = {};
+  for (const t of (await tr.json()).tracks || []) {
+    const rel = (t.releases || []).find(r => (r.versionCodes || []).length) || (t.releases || [])[0];
+    if (!rel) continue;
+    out[t.track] = {
+      versionCodes: rel.versionCodes || [],
+      name: rel.name || null,
+      status: rel.status || null,
+      userFraction: rel.userFraction != null ? rel.userFraction : null,
+    };
   }
+  return { onPlay: true, tracks: out };
 }
 
 // ---- run a list of async thunks with bounded concurrency -------------------
