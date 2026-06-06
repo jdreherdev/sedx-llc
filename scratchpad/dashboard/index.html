@@ -166,7 +166,7 @@ async function load() {
   const grid = document.getElementById('grid');
   document.getElementById('snapshot').textContent = 'Loading…';
   try {
-    const res = await fetch('/api/dashboard', { cache: 'no-store' });
+    const res = await fetch('/scratchpad/dashboard-data', { cache: 'no-store' });
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const doc = await res.json();
     const apps = doc.apps || [];

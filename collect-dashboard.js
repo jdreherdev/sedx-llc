@@ -9,7 +9,8 @@
 //     Source of truth = Google Play Developer API, authed with the app's own
 //     google-service-account.json.
 //
-// The browser dashboard (/dashboard/) reads this back via /api/dashboard.
+// The browser dashboard (/scratchpad/dashboard/) reads this back via
+// /scratchpad/dashboard-data (both gated by the existing Access app).
 //
 // Usage:   node SEDX-site/collect-dashboard.js
 //   --dry  print the snapshot JSON instead of pushing to KV

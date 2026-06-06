@@ -4,8 +4,11 @@
 // (Apps/SEDX-site/collect-dashboard.js) which gathers each app's local version
 // and live Play Store track status, then writes a snapshot directly to the
 // SCRATCHPAD KV namespace under the "dashboard" key via the Cloudflare API.
-// This Worker only reads it back. Cloudflare Access gates every request that
-// reaches here (presence of the Cf-Access-Jwt-Assertion header = authenticated).
+// This Worker only reads it back. It lives under the /scratchpad/* prefix
+// (served at /scratchpad/dashboard-data) precisely because that prefix is
+// already covered by the Cloudflare Access application — so Access strips any
+// client-supplied Cf-Access-Jwt-Assertion header and injects a real one only
+// for authenticated users. Presence of that header here therefore proves auth.
 //
 // Storage: single KV key "dashboard" →
 //   { snapshotAt: ISO8601, apps: [{ name, appId, version, tracks: {...}, ... }] }
