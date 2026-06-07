@@ -127,20 +127,26 @@ async function scrapeRating(pkg) {
 }
 
 // ---- RevenueCat v2 overview (optional) -------------------------------------
-async function revenueCatOverview(key) {
-  const auth = { Authorization: `Bearer ${key}` };
-  const pr = await fetch('https://api.revenuecat.com/v2/projects', { headers: auth });
-  if (!pr.ok) return { error: `projects ${pr.status}: ${(await pr.text()).slice(0, 160)}`, projects: [] };
-  const projects = (await pr.json()).items || [];
+// REVENUECAT_V2_KEY may hold several v2 keys (comma/space/newline separated) —
+// v2 keys are project-scoped, so one key per project is needed for full coverage.
+// We list each key's projects and aggregate, deduping by project id.
+async function revenueCatOverview(secret) {
+  const keys = secret.split(/[\s,]+/).filter(Boolean);
+  const seen = new Set();
   const out = [];
-  for (const p of projects) {
-    const m = await fetch(`https://api.revenuecat.com/v2/projects/${p.id}/metrics/overview`, { headers: auth });
-    out.push({
-      id: p.id,
-      name: p.name,
-      metrics: m.ok ? (await m.json()).metrics || [] : null,
-      error: m.ok ? null : `overview ${m.status}`,
-    });
+  for (const key of keys) {
+    const auth = { Authorization: `Bearer ${key}` };
+    const pr = await fetch('https://api.revenuecat.com/v2/projects', { headers: auth });
+    if (!pr.ok) {
+      out.push({ id: null, name: null, metrics: null, error: `projects ${pr.status}: ${(await pr.text()).slice(0, 120)}` });
+      continue;
+    }
+    for (const p of (await pr.json()).items || []) {
+      if (seen.has(p.id)) continue;
+      seen.add(p.id);
+      const m = await fetch(`https://api.revenuecat.com/v2/projects/${p.id}/metrics/overview`, { headers: auth });
+      out.push({ id: p.id, name: p.name, metrics: m.ok ? (await m.json()).metrics || [] : null, error: m.ok ? null : `overview ${m.status}` });
+    }
   }
   return { projects: out };
 }
@@ -161,7 +167,7 @@ async function refresh(env) {
   // Phase 1: installs (GCS) — list once, then one fetch per app.
   const fileMap = await latestInstallFiles(env.GCS_BUCKET, token);
   const rows = await pool(apps, CONCURRENCY, async app => {
-    const row = { androidPackage: app.androidPackage, activeInstalls: null, totalInstalls: null, rating: null, ratingCount: null, error: null };
+    const row = { androidPackage: app.androidPackage, displayName: app.displayName, activeInstalls: null, totalInstalls: null, rating: null, ratingCount: null, mrr: null, revenue: null, subs: null, error: null };
     const f = fileMap[app.androidPackage];
     if (f) {
       try {
@@ -180,6 +186,25 @@ async function refresh(env) {
       revenue = await revenueCatOverview(env.REVENUECAT_V2_KEY);
     } catch (e) {
       revenue = { error: String(e.message || e) };
+    }
+  }
+
+  // Attach per-app revenue by matching RC project name -> app display name
+  // (one RC project per app). Overall totals are summed on the page separately.
+  if (revenue && Array.isArray(revenue.projects)) {
+    const norm = s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    const revByName = {};
+    for (const p of revenue.projects) {
+      if (!p.metrics) continue;
+      const get = id => {
+        const m = p.metrics.find(x => x.id === id);
+        return m && typeof m.value === 'number' ? m.value : null;
+      };
+      revByName[norm(p.name)] = { mrr: get('mrr'), revenue: get('revenue'), subs: get('active_subscriptions') };
+    }
+    for (const r of rows) {
+      const hit = revByName[norm(r.displayName)];
+      if (hit) Object.assign(r, hit);
     }
   }
 

@@ -150,6 +150,8 @@ function metricsRow(app) {
     parts.push(`<span class="mstat">${m.activeInstalls.toLocaleString()} <span class="mlabel">installs</span></span>`);
   if (m.rating != null)
     parts.push(`<span class="mstat">★ ${m.rating}${m.ratingCount ? ` <span class="mlabel">(${m.ratingCount.toLocaleString()})</span>` : ''}</span>`);
+  if (m.mrr) parts.push(`<span class="mstat">$${Math.round(m.mrr).toLocaleString()} <span class="mlabel">MRR</span></span>`);
+  if (m.subs) parts.push(`<span class="mstat">${m.subs.toLocaleString()} <span class="mlabel">subs</span></span>`);
   return parts.length ? `<div class="metrics">${parts.join('')}</div>` : '';
 }
 

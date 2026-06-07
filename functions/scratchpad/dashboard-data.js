@@ -58,7 +58,7 @@ export async function onRequest({ request, env }) {
       const byPkg = Object.fromEntries((m.apps || []).map(a => [a.androidPackage, a]));
       for (const app of doc.apps || []) {
         const mx = byPkg[app.androidPackage];
-        if (mx) app.metrics = { activeInstalls: mx.activeInstalls, totalInstalls: mx.totalInstalls, rating: mx.rating, ratingCount: mx.ratingCount };
+        if (mx) app.metrics = { activeInstalls: mx.activeInstalls, totalInstalls: mx.totalInstalls, rating: mx.rating, ratingCount: mx.ratingCount, mrr: mx.mrr, revenue: mx.revenue, subs: mx.subs };
       }
       doc.metrics = { metricsAt: m.metricsAt, summary: m.summary || null, revenue: m.revenue || null };
     } catch {
