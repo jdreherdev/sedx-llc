@@ -175,16 +175,32 @@ async function putKV(key, value) {
   // KV key, which the scheduled Cloudflare Worker reads. Run this on the laptop
   // whenever apps are added/renamed or dev versions should be refreshed.
   if (EMIT_CONFIG) {
+    // Resolve each app's live App Store URL from its iOS bundle id via the
+    // public iTunes lookup API (returns nothing if the app isn't on the store).
+    async function iosUrl(bundleId) {
+      if (!bundleId) return null;
+      try {
+        const r = await req('GET', `https://itunes.apple.com/lookup?bundleId=${encodeURIComponent(bundleId)}&country=us`);
+        if (r.status !== 200) return null;
+        const res = JSON.parse(r.body).results || [];
+        return res[0]?.trackViewUrl || null;
+      } catch {
+        return null;
+      }
+    }
+    const list = apps.filter(a => a.androidPackage);
     const config = {
       emittedAt: new Date().toISOString(),
-      apps: apps
-        .filter(a => a.androidPackage)
-        .map(a => ({
+      apps: await Promise.all(
+        list.map(async a => ({
           name: a.name,
           displayName: a.displayName,
           androidPackage: a.androidPackage,
+          iosBundleId: a.iosBundleId || null,
+          iosUrl: await iosUrl(a.iosBundleId),
           version: a.version,
         })),
+      ),
     };
     if (DRY) {
       console.log(JSON.stringify(config, null, 2));

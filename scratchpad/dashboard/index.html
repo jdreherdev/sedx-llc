@@ -85,6 +85,13 @@
   .tstatus.halted { color: var(--danger); }
   .ahead { color: var(--ok); font-size: 11px; }
 
+  .stores { display: flex; gap: 8px; flex-wrap: wrap; }
+  .store {
+    font-size: 11px; color: var(--text-dim); text-decoration: none;
+    border: 1px solid var(--border); border-radius: 6px; padding: 3px 9px;
+  }
+  .store:hover { color: var(--gold); border-color: var(--gold); }
+
   .metrics { display: flex; gap: 16px; border-top: 1px solid var(--border); padding-top: 9px; font-size: 13px; color: var(--text); }
   .mstat { color: var(--text); }
   .mlabel { color: var(--text-dim); font-size: 11px; }
@@ -142,6 +149,17 @@ function trackRow(track, t, devVersion) {
   </div>`;
 }
 
+function storeLinks(app) {
+  const links = [];
+  // Play link only when a production track exists (public listing).
+  if (app.androidPackage && app.tracks && app.tracks.production)
+    links.push(`<a class="store" href="https://play.google.com/store/apps/details?id=${esc(app.androidPackage)}" target="_blank" rel="noopener">Play ↗</a>`);
+  // iOS link only when the App Store lookup resolved a live listing.
+  if (app.iosUrl)
+    links.push(`<a class="store" href="${esc(app.iosUrl)}" target="_blank" rel="noopener">App Store ↗</a>`);
+  return links.length ? `<div class="stores">${links.join('')}</div>` : '';
+}
+
 function metricsRow(app) {
   const m = app.metrics;
   if (!m) return '';
@@ -177,6 +195,7 @@ function card(app) {
     </div>
     ${body}
     ${metricsRow(app)}
+    ${storeLinks(app)}
   </div>`;
 }
 

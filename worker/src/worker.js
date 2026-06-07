@@ -134,6 +134,7 @@ async function refresh(env) {
       displayName: app.displayName,
       appId: app.androidPackage,
       androidPackage: app.androidPackage,
+      iosUrl: app.iosUrl || null,
       version: app.version,
       onPlay: false,
       tracks: {},
