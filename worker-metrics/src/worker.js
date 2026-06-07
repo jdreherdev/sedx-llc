@@ -2,9 +2,11 @@
 //
 // Refreshes the slow-moving metrics the build Worker doesn't cover:
 //   • installs — from Play's bulk report bucket on GCS (stats/installs/*_overview.csv)
-//   • ratings  — parsed from the public Play listing (only present once an app has
-//                enough ratings to display a star; "—" otherwise)
 //   • revenue  — RevenueCat v2 overview metrics (only if REVENUECAT_V2_KEY is set)
+//
+// (Ratings were removed: the public Play listing only exposes per-app star labels
+//  for the "similar apps" carousel, not reliably the subject app, so scraping it
+//  surfaced other apps' ratings. No trustworthy aggregate-rating source exists yet.)
 //
 // Writes KV key "dashboard-metrics"; the gated /scratchpad/dashboard-data Pages
 // Function merges it into each app by package name. Separate from the 6h build
@@ -111,21 +113,6 @@ async function readInstalls(bucket, token, objectName) {
   return { activeInstalls: iActive >= 0 ? num(last[iActive]) : null, totalInstalls: iTotal >= 0 ? num(last[iTotal]) : null };
 }
 
-// ---- public Play listing -> aggregate star rating --------------------------
-async function scrapeRating(pkg) {
-  const r = await fetch(`https://play.google.com/store/apps/details?id=${pkg}&hl=en&gl=US`, {
-    headers: { 'Accept-Language': 'en-US,en;q=0.9' },
-  });
-  if (!r.ok) return { rating: null, ratingCount: null };
-  const html = await r.text();
-  const rm = html.match(/Rated ([0-9.]+) stars? out of/);
-  const cm = html.match(/([0-9][0-9,]*)\s+reviews/i);
-  return {
-    rating: rm ? parseFloat(rm[1]) : null,
-    ratingCount: cm ? parseInt(cm[1].replace(/,/g, ''), 10) : null,
-  };
-}
-
 // ---- RevenueCat v2 overview (optional) -------------------------------------
 // REVENUECAT_V2_KEY may hold several v2 keys (comma/space/newline separated) —
 // v2 keys are project-scoped, so one key per project is needed for full coverage.
@@ -167,7 +154,7 @@ async function refresh(env) {
   // Phase 1: installs (GCS) — list once, then one fetch per app.
   const fileMap = await latestInstallFiles(env.GCS_BUCKET, token);
   const rows = await pool(apps, CONCURRENCY, async app => {
-    const row = { androidPackage: app.androidPackage, displayName: app.displayName, activeInstalls: null, totalInstalls: null, rating: null, ratingCount: null, mrr: null, revenue: null, subs: null, error: null };
+    const row = { androidPackage: app.androidPackage, displayName: app.displayName, activeInstalls: null, totalInstalls: null, mrr: null, revenue: null, subs: null, error: null };
     const f = fileMap[app.androidPackage];
     if (f) {
       try {
@@ -208,39 +195,22 @@ async function refresh(env) {
     }
   }
 
-  // Write installs+revenue first so a heavy ratings pass can't lose them.
   const byPkg = Object.fromEntries(rows.map(r => [r.androidPackage, r]));
-  const writeSnapshot = async () =>
-    env.SCRATCHPAD.put(
-      'dashboard-metrics',
-      JSON.stringify({
-        metricsAt: new Date().toISOString(),
-        apps: Object.values(byPkg),
-        revenue,
-        summary: {
-          totalActiveInstalls: Object.values(byPkg).reduce((s, r) => s + (r.activeInstalls || 0), 0),
-          rated: Object.values(byPkg).filter(r => r.rating != null).length,
-        },
-      }),
-    );
-  await writeSnapshot();
-
-  // Phase 3: ratings (public store page) — best-effort, then re-write.
-  await pool(apps, CONCURRENCY, async app => {
-    try {
-      const { rating, ratingCount } = await scrapeRating(app.androidPackage);
-      byPkg[app.androidPackage].rating = rating;
-      byPkg[app.androidPackage].ratingCount = ratingCount;
-    } catch {
-      /* leave rating null */
-    }
-  });
-  await writeSnapshot();
+  await env.SCRATCHPAD.put(
+    'dashboard-metrics',
+    JSON.stringify({
+      metricsAt: new Date().toISOString(),
+      apps: Object.values(byPkg),
+      revenue,
+      summary: {
+        totalActiveInstalls: Object.values(byPkg).reduce((s, r) => s + (r.activeInstalls || 0), 0),
+      },
+    }),
+  );
 
   return {
     apps: rows.length,
     totalActiveInstalls: Object.values(byPkg).reduce((s, r) => s + (r.activeInstalls || 0), 0),
-    rated: Object.values(byPkg).filter(r => r.rating != null).length,
     revenue: revenue ? (revenue.error || `${(revenue.projects || []).length} project(s)`) : 'no key',
   };
 }
