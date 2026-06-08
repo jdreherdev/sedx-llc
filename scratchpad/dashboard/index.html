@@ -13,7 +13,7 @@
   :root {
     --bg: #0A0A0A;
     --bg-card: #14130F;
-    --bg-card-hover: #1A1814;
+    --bg-row-hover: #1A1814;
     --border: #2A2620;
     --text: #E8DCC0;
     --text-dim: #9C9079;
@@ -23,6 +23,7 @@
     --danger: #C44;
     --beta: #6B8FB5;
     --alpha: #9B7BB5;
+    --internal: #9C9079;
     --ok: #6FA86F;
   }
   * { box-sizing: border-box; }
@@ -32,7 +33,7 @@
     line-height: 1.5;
     min-height: 100vh;
   }
-  .wrap { max-width: 1100px; margin: 0 auto; padding: 40px 24px 96px; }
+  .wrap { max-width: 1280px; margin: 0 auto; padding: 40px 24px 96px; }
   .crumb { display: inline-block; color: var(--text-dim); font-size: 13px; text-decoration: none; margin-bottom: 24px; }
   .crumb:hover { color: var(--gold); }
 
@@ -52,52 +53,54 @@
   }
   .chip b { color: var(--text); font-weight: 600; }
 
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; }
-  .card {
-    background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px;
-    padding: 16px 18px; display: flex; flex-direction: column; gap: 12px;
+  .tablewrap {
+    border: 1px solid var(--border); border-radius: 12px; overflow-x: auto;
+    background: var(--bg-card);
   }
-  .card:hover { background: var(--bg-card-hover); }
-  .card.off { opacity: 0.55; }
-  .card-top { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
-  .app-name { font-size: 15px; font-weight: 600; color: var(--text); }
-  .app-id { font-size: 11px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
-  .dev-ver { font-size: 12px; color: var(--text-dim); white-space: nowrap; }
-  .dev-ver b { color: var(--gold); font-weight: 600; }
+  table { border-collapse: collapse; width: 100%; font-size: 13px; }
+  thead th {
+    position: sticky; top: 0; background: var(--bg-card);
+    text-align: left; font-weight: 600; color: var(--text-dim);
+    font-size: 11px; letter-spacing: 0.4px; text-transform: uppercase;
+    padding: 12px 12px; border-bottom: 1px solid var(--border); white-space: nowrap;
+  }
+  thead th.num { text-align: right; }
+  thead th.trk { text-align: center; }
+  tbody td { padding: 11px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover { background: var(--bg-row-hover); }
+  tbody tr.off td { opacity: 0.5; }
 
-  .tracks { display: flex; flex-direction: column; gap: 6px; }
-  .track {
-    display: flex; align-items: center; gap: 8px; font-size: 12.5px;
-    padding: 5px 8px; border-radius: 7px; background: #00000033; border: 1px solid var(--border);
-  }
-  .tlabel {
-    font-size: 10px; font-weight: 700; letter-spacing: 0.4px; text-transform: uppercase;
-    padding: 2px 7px; border-radius: 5px; flex-shrink: 0; min-width: 64px; text-align: center;
-  }
-  .tlabel.production { background: rgba(201,162,74,0.18); color: var(--gold); }
-  .tlabel.beta       { background: rgba(107,143,181,0.18); color: var(--beta); }
-  .tlabel.alpha      { background: rgba(155,123,181,0.18); color: var(--alpha); }
-  .tlabel.internal   { background: rgba(156,144,121,0.15); color: var(--text-dim); }
+  .app-name { font-size: 14px; font-weight: 600; color: var(--text); }
+  .app-id { font-size: 10.5px; color: var(--muted); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  .dev b { color: var(--gold); font-weight: 600; }
+
+  /* per-track release cell */
+  td.trk { text-align: center; white-space: nowrap; }
   .tver { color: var(--text); font-weight: 500; }
   .tvc { color: var(--text-dim); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 11px; }
-  .tstatus { margin-left: auto; font-size: 11px; color: var(--muted); }
+  td.trk.production .tver { color: var(--gold); }
+  td.trk.beta .tver       { color: var(--beta); }
+  td.trk.alpha .tver      { color: var(--alpha); }
+  td.dash { color: var(--muted); text-align: center; }
+  .tstatus { display: block; font-size: 10px; color: var(--muted); margin-top: 1px; }
   .tstatus.rollout { color: var(--beta); }
   .tstatus.halted { color: var(--danger); }
-  .ahead { color: var(--ok); font-size: 11px; }
+  .ahead { display: block; color: var(--ok); font-size: 10px; margin-top: 1px; }
 
-  .stores { display: flex; gap: 8px; flex-wrap: wrap; }
+  td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.num.zero { color: var(--muted); }
+
+  .stores { display: flex; gap: 6px; }
   .store {
     font-size: 11px; color: var(--text-dim); text-decoration: none;
-    border: 1px solid var(--border); border-radius: 6px; padding: 3px 9px;
+    border: 1px solid var(--border); border-radius: 6px; padding: 2px 8px; white-space: nowrap;
   }
   .store:hover { color: var(--gold); border-color: var(--gold); }
 
-  .metrics { display: flex; gap: 16px; border-top: 1px solid var(--border); padding-top: 9px; font-size: 13px; color: var(--text); }
-  .mstat { color: var(--text); }
-  .mlabel { color: var(--text-dim); font-size: 11px; }
-
-  .none { color: var(--muted); font-size: 12px; font-style: italic; }
-  .err { color: var(--danger); font-size: 12px; }
+  .cell-note { color: var(--muted); font-style: italic; font-size: 12px; }
+  .cell-err { color: var(--danger); font-size: 12px; }
   .empty { color: var(--text-dim); text-align: center; padding: 60px 0; }
 </style>
 </head>
@@ -110,11 +113,30 @@
   </div>
   <div class="meta" id="snapshot">Loading…</div>
   <div class="chips" id="chips"></div>
-  <div class="grid" id="grid"></div>
+  <div class="tablewrap">
+    <table>
+      <thead>
+        <tr>
+          <th>App</th>
+          <th class="num">Dev</th>
+          <th class="trk">Internal</th>
+          <th class="trk">Alpha</th>
+          <th class="trk">Beta</th>
+          <th class="trk">Production</th>
+          <th class="num">Installs</th>
+          <th class="num">MRR</th>
+          <th class="num">Subs</th>
+          <th>Links</th>
+        </tr>
+      </thead>
+      <tbody id="rows"></tbody>
+    </table>
+  </div>
 </div>
 
 <script>
-const TRACK_ORDER = ['production', 'beta', 'alpha', 'internal'];
+// Pipeline order, left → right (internal is earliest, production is last).
+const TRACK_ORDER = ['internal', 'alpha', 'beta', 'production'];
 const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 
 function fmtAgo(iso) {
@@ -128,7 +150,9 @@ function fmtAgo(iso) {
   return Math.round(hrs / 24) + ' day(s) ago';
 }
 
-function trackRow(track, t, devVersion) {
+// One <td> for a single Play track.
+function trackCell(track, t, devVersion) {
+  if (!t) return `<td class="dash">—</td>`;
   const vc = (t.versionCodes || []).join(', ');
   const ahead = devVersion && t.name && devVersion !== t.name && track === 'production';
   let status = '';
@@ -140,65 +164,61 @@ function trackRow(track, t, devVersion) {
   } else if (t.status === 'draft') {
     status = `<span class="tstatus">draft</span>`;
   }
-  return `<div class="track">
-    <span class="tlabel ${track}">${track === 'internal' ? 'internal' : track}</span>
+  return `<td class="trk ${track}">
     <span class="tver">${esc(t.name || '—')}</span>
-    <span class="tvc">(${esc(vc)})</span>
+    ${vc ? `<span class="tvc"> (${esc(vc)})</span>` : ''}
     ${ahead ? '<span class="ahead">dev ahead</span>' : ''}
     ${status}
-  </div>`;
+  </td>`;
 }
 
-function storeLinks(app) {
+function num(v, suffix = '') {
+  if (v == null) return `<td class="num dash">—</td>`;
+  const zero = v === 0 ? ' zero' : '';
+  return `<td class="num${zero}">${suffix}${v.toLocaleString()}</td>`;
+}
+
+function storeCell(app) {
   const links = [];
-  // Play link only when a production track exists (public listing).
   if (app.androidPackage && app.tracks && app.tracks.production)
     links.push(`<a class="store" href="https://play.google.com/store/apps/details?id=${esc(app.androidPackage)}" target="_blank" rel="noopener">Play ↗</a>`);
-  // iOS link only when the App Store lookup resolved a live listing.
   if (app.iosUrl)
     links.push(`<a class="store" href="${esc(app.iosUrl)}" target="_blank" rel="noopener">App Store ↗</a>`);
-  return links.length ? `<div class="stores">${links.join('')}</div>` : '';
+  return `<td>${links.length ? `<div class="stores">${links.join('')}</div>` : '<span class="dash">—</span>'}</td>`;
 }
 
-function metricsRow(app) {
-  const m = app.metrics;
-  if (!m) return '';
-  const parts = [];
-  if (m.activeInstalls != null)
-    parts.push(`<span class="mstat">${m.activeInstalls.toLocaleString()} <span class="mlabel">installs</span></span>`);
-  if (m.mrr) parts.push(`<span class="mstat">$${Math.round(m.mrr).toLocaleString()} <span class="mlabel">MRR</span></span>`);
-  if (m.subs) parts.push(`<span class="mstat">${m.subs.toLocaleString()} <span class="mlabel">subs</span></span>`);
-  return parts.length ? `<div class="metrics">${parts.join('')}</div>` : '';
-}
-
-function card(app) {
+function row(app) {
   const liveTracks = TRACK_ORDER.filter(t => app.tracks && app.tracks[t]);
-  let body;
+  const off = liveTracks.length ? '' : 'off';
+  const m = app.metrics || {};
+
+  // App + dev columns are always shown; the four track columns vary.
+  let trackCells;
   if (app.error) {
-    body = `<div class="err">${esc(app.error)}</div>`;
+    trackCells = `<td class="trk" colspan="4"><span class="cell-err">${esc(app.error)}</span></td>`;
   } else if (!app.onPlay) {
-    body = `<div class="none">Not on Play (no published edit)</div>`;
+    trackCells = `<td class="trk" colspan="4"><span class="cell-note">Not on Play (no published edit)</span></td>`;
   } else if (!liveTracks.length) {
-    body = `<div class="none">No releases on any track</div>`;
+    trackCells = `<td class="trk" colspan="4"><span class="cell-note">No releases on any track</span></td>`;
   } else {
-    body = `<div class="tracks">${liveTracks.map(t => trackRow(t, app.tracks[t], app.version)).join('')}</div>`;
+    trackCells = TRACK_ORDER.map(t => trackCell(t, app.tracks && app.tracks[t], app.version)).join('');
   }
-  return `<div class="card ${liveTracks.length ? '' : 'off'}">
-    <div class="card-top">
-      <div>
-        <div class="app-name">${esc(app.displayName)}</div>
-        <div class="app-id">${esc(app.androidPackage || app.appId)}</div>
-      </div>
-      <div class="dev-ver">dev <b>v${esc(app.version || '?')}</b></div>
-    </div>
-    ${body}
-    ${metricsRow(app)}
-    ${storeLinks(app)}
-  </div>`;
+
+  return `<tr class="${off}">
+    <td>
+      <div class="app-name">${esc(app.displayName)}</div>
+      <div class="app-id">${esc(app.androidPackage || app.appId)}</div>
+    </td>
+    <td class="num dev"><b>v${esc(app.version || '?')}</b></td>
+    ${trackCells}
+    ${num(m.activeInstalls)}
+    ${num(m.mrr, '$')}
+    ${num(m.subs)}
+    ${storeCell(app)}
+  </tr>`;
 }
 
-// Best-effort: pull a total revenue (last 28d) and MRR from the RevenueCat
-// overview blob, summed across projects. Returns nulls until a v2 key is set.
+// Sum revenue (28d) / MRR / subs across RevenueCat projects for the summary chips.
 function extractRevenue(rev) {
   if (!rev || !Array.isArray(rev.projects)) return { revenue: null, mrr: null, subs: null };
   let revenue = null, mrr = null, subs = null;
@@ -217,7 +237,7 @@ function extractRevenue(rev) {
 const money = n => '$' + Math.round(n).toLocaleString();
 
 async function load() {
-  const grid = document.getElementById('grid');
+  const rows = document.getElementById('rows');
   document.getElementById('snapshot').textContent = 'Loading…';
   try {
     const res = await fetch('/scratchpad/dashboard-data', { cache: 'no-store' });
@@ -226,7 +246,7 @@ async function load() {
     const apps = doc.apps || [];
     if (!apps.length) {
       document.getElementById('snapshot').textContent = 'No snapshot yet — run the collector.';
-      grid.innerHTML = `<div class="empty">No data. Run <code>node SEDX-site/collect-dashboard.js</code> on the laptop to populate this dashboard.</div>`;
+      rows.innerHTML = `<tr><td colspan="10"><div class="empty">No data. Run <code>node SEDX-site/collect-dashboard.js</code> on the laptop to populate this dashboard.</div></td></tr>`;
       document.getElementById('chips').innerHTML = '';
       return;
     }
@@ -247,7 +267,11 @@ async function load() {
     if (rev.revenue != null) chips += `<span class="chip"><b>${money(rev.revenue)}</b> rev (28d)</span>`;
     if (rev.subs != null) chips += `<span class="chip"><b>${rev.subs.toLocaleString()}</b> subscribers</span>`;
     document.getElementById('chips').innerHTML = chips;
-    grid.innerHTML = apps.map(card).join('');
+
+    // Production-first, then by name, so live apps sit at the top.
+    const ord = a => (a.tracks && a.tracks.production ? 0 : a.onPlay ? 1 : 2);
+    apps.sort((a, b) => ord(a) - ord(b) || String(a.displayName).localeCompare(b.displayName));
+    rows.innerHTML = apps.map(row).join('');
   } catch (e) {
     document.getElementById('snapshot').textContent = 'Failed to load: ' + e.message;
   }
