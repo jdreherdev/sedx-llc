@@ -36,7 +36,7 @@
   }
   .wrap { max-width: 1280px; margin: 0 auto; padding: 64px 24px 96px; }
 
-  header { margin-bottom: 64px; }
+  header { margin-bottom: 32px; }
   .header-top {
     display: flex;
     align-items: center;
@@ -107,7 +107,7 @@
   }
   @media (max-width: 760px) { .values { grid-template-columns: repeat(2, 1fr); } }
   @media (max-width: 480px) { .values { grid-template-columns: 1fr; } }
-  .value { display: flex; gap: 13px; align-items: flex-start; }
+  .value { display: block; }
   .value-check {
     flex-shrink: 0;
     width: 34px;
@@ -205,6 +205,7 @@
   }
 
   /* how it works */
+  .model > h2 { margin-top: 0; }
   .steps {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -407,10 +408,12 @@
     </div>
     <p class="tagline">Doing business as RLTW.</p>
     <p class="intro">
-      SEDX, LLC builds focused mobile reference, training, and utility apps — fast, offline, and without distraction.
+      SEDX, LLC builds focused mobile reference, training, and utility apps — pocket-sized field manuals, professional reference, and everyday tools.
+      Built for people who need answers fast, offline, and without distraction.
     </p>
     <p class="promise">
-      <strong>Pay once and own it.</strong> No ads, no subscriptions, no selling your data — premium features are a single low-cost unlock, and your data stays on your device whenever it can.
+      And built the way software should be: <strong>you pay once and own it</strong> — no ads, no subscriptions, no selling your data.
+      Premium features that competitors gate behind pricey recurring plans are a single, low-cost unlock here, and your information stays on your device whenever it possibly can.
     </p>
 
     <div class="values">
