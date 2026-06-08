@@ -180,6 +180,12 @@ async function refresh(env) {
   // (one RC project per app). Overall totals are summed on the page separately.
   if (revenue && Array.isArray(revenue.projects)) {
     const norm = s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+    // RevenueCat project names don't always equal the app's display name.
+    // Map normalized RC project name -> normalized app displayName for those.
+    const RC_ALIASES = {
+      armysurvivalhandbook: 'armysurvivalmanual', // RC "Army Survival Handbook" -> app "Army Survival Manual"
+      mutcd: 'mutcd11thedition',                  // RC "MUTCD" -> app "MUTCD 11th Edition"
+    };
     const revByName = {};
     for (const p of revenue.projects) {
       if (!p.metrics) continue;
@@ -187,7 +193,8 @@ async function refresh(env) {
         const m = p.metrics.find(x => x.id === id);
         return m && typeof m.value === 'number' ? m.value : null;
       };
-      revByName[norm(p.name)] = { mrr: get('mrr'), revenue: get('revenue'), subs: get('active_subscriptions') };
+      const key = RC_ALIASES[norm(p.name)] || norm(p.name);
+      revByName[key] = { mrr: get('mrr'), revenue: get('revenue'), subs: get('active_subscriptions') };
     }
     for (const r of rows) {
       const hit = revByName[norm(r.displayName)];
