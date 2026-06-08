@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SEDX, LLC</title>
 <meta name="description" content="SEDX, LLC — the company behind RLTW. Reference, training, and team-coordination apps for the military, civilian, and athletic communities.">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="icon" href="/favicon.ico" sizes="any">
 <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
 <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
@@ -37,6 +38,18 @@
     justify-content: space-between;
     gap: 16px;
     margin-bottom: 8px;
+  }
+  .brand-lockup {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    min-width: 0;
+  }
+  .brand-mark {
+    width: 52px;
+    height: 52px;
+    flex-shrink: 0;
+    display: block;
   }
   .brand {
     font-size: 44px;
@@ -251,6 +264,7 @@
   @media (max-width: 560px) {
     .wrap { padding: 48px 20px 64px; }
     .brand { font-size: 34px; }
+    .brand-mark { width: 40px; height: 40px; }
     h2 { margin-top: 48px; }
   }
 </style>
@@ -260,7 +274,10 @@
 
   <header>
     <div class="header-top">
-      <h1 class="brand">SEDX<span class="gold">,</span> LLC</h1>
+      <div class="brand-lockup">
+        <img class="brand-mark" src="/sedx-mark.svg" alt="SEDX logo">
+        <h1 class="brand">SEDX<span class="gold">,</span> LLC</h1>
+      </div>
       <a class="signin" href="/scratchpad/">Sign in</a>
     </div>
     <p class="tagline">Doing business as RLTW.</p>
