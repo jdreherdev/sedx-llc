@@ -161,23 +161,25 @@
   .stats {
     display: flex;
     flex-wrap: wrap;
-    margin: 44px 0 8px;
-    padding: 24px 0;
+    max-width: 640px;
+    margin: 18px auto 0;
+    padding: 11px 0;
     border-top: 1px solid var(--border);
     border-bottom: 1px solid var(--border);
   }
-  .stat { flex: 1 1 0; min-width: 130px; text-align: center; position: relative; padding: 6px 8px; }
+  .stat { flex: 1 1 0; min-width: 100px; text-align: center; position: relative; padding: 2px 8px; }
   .stat + .stat::before {
     content: "";
     position: absolute;
-    left: 0; top: 18%;
-    height: 64%; width: 1px;
+    left: 0; top: 14%;
+    height: 72%; width: 1px;
     background: var(--border);
   }
-  .stat-num { font-size: 32px; font-weight: 700; color: var(--gold); line-height: 1.05; letter-spacing: 0.5px; }
-  .stat-label { font-size: 12px; letter-spacing: 1.2px; text-transform: uppercase; color: var(--text-dim); margin-top: 6px; }
+  .stat-num { font-size: 22px; font-weight: 700; color: var(--gold); line-height: 1.1; letter-spacing: 0.5px; }
+  .stat-label { font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); margin-top: 2px; }
 
   /* how it works */
+  .model > h2 { margin-top: 38px; }
   .steps {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
