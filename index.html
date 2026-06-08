@@ -73,6 +73,41 @@
   }
   .intro strong { color: var(--text); font-weight: 600; }
 
+  .promise {
+    color: var(--text);
+    font-size: 16px;
+    max-width: 680px;
+    margin: 20px 0 0;
+  }
+  .promise strong { color: var(--gold); font-weight: 600; }
+
+  .values {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
+    gap: 18px 32px;
+    max-width: 880px;
+    margin: 32px 0 0;
+    padding-top: 30px;
+    border-top: 1px solid var(--border);
+  }
+  .value { display: flex; gap: 13px; align-items: flex-start; }
+  .value-check {
+    flex-shrink: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 7px;
+    background: rgba(201, 162, 74, 0.14);
+    color: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 700;
+    margin-top: 1px;
+  }
+  .value-title { color: var(--text); font-weight: 600; font-size: 15px; margin: 0 0 3px; }
+  .value-desc { color: var(--text-dim); font-size: 13.5px; line-height: 1.5; margin: 0; }
+
   h2 {
     font-size: 13px;
     font-weight: 600;
@@ -231,9 +266,44 @@
     </div>
     <p class="tagline">Doing business as RLTW.</p>
     <p class="intro">
-      SEDX, LLC builds focused mobile reference and training apps — pocket-sized field manuals, professional reference, and team-coordination tools.
+      SEDX, LLC builds focused mobile reference, training, and utility apps — pocket-sized field manuals, professional reference, and everyday tools.
       Built for people who need answers fast, offline, and without distraction.
     </p>
+    <p class="promise">
+      And built the way software should be: <strong>you pay once and own it</strong> — no ads, no subscriptions, no selling your data.
+      Premium features that competitors gate behind pricey recurring plans are a single, low-cost unlock here, and your information stays on your device whenever it possibly can.
+    </p>
+
+    <div class="values">
+      <div class="value">
+        <span class="value-check">✓</span>
+        <div>
+          <p class="value-title">Pay once, own it</p>
+          <p class="value-desc">Unlock premium features with one low-cost purchase — often a fraction of what competitors charge over a year of subscriptions.</p>
+        </div>
+      </div>
+      <div class="value">
+        <span class="value-check">✓</span>
+        <div>
+          <p class="value-title">No subscriptions, no ads</p>
+          <p class="value-desc">Nothing to renew, nothing to cancel, and nothing between you and the app — no banners, pop-ups, or tracking pixels.</p>
+        </div>
+      </div>
+      <div class="value">
+        <span class="value-check">✓</span>
+        <div>
+          <p class="value-title">Your data isn't the product</p>
+          <p class="value-desc">We don't sell or share your information. No analytics middlemen profiting off how you use our apps.</p>
+        </div>
+      </div>
+      <div class="value">
+        <span class="value-check">✓</span>
+        <div>
+          <p class="value-title">On-device by default</p>
+          <p class="value-desc">Your data is stored and processed right on your phone wherever it's technically possible — private by design, and it works offline.</p>
+        </div>
+      </div>
+    </div>
   </header>
 
   <section>
@@ -465,6 +535,20 @@
         <h3 class="card-name">Leafy</h3>
         <p class="card-desc">Identify plants, insects, and mushrooms — fully on-device, private, pay once.</p>
         <a class="btn btn-soon">Coming Soon</a>
+      </div>
+
+      <div class="card">
+        <img class="card-icon" src="icons/wildside.png" alt="Wildside icon">
+        <h3 class="card-name">Wildside</h3>
+        <p class="card-desc">Explore wildlife sightings on a live map — observations from naturalists worldwide, filterable by species, group, and source.</p>
+        <div class="store-badges">
+          <a class="store-badge" href="https://play.google.com/store/apps/details?id=com.rltw.wildside" aria-label="Get it on Google Play">
+            <img src="badges/google-play.png" alt="Get it on Google Play">
+          </a>
+          <span class="store-badge placeholder" title="Coming soon to the App Store" aria-label="Coming soon to the App Store">
+            <img src="badges/app-store.svg" alt="Download on the App Store — coming soon">
+          </span>
+        </div>
       </div>
 
       <div class="card">
