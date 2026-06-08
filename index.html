@@ -194,29 +194,7 @@
     stroke-linejoin: round;
   }
 
-  /* trust / stats band */
-  .stats {
-    display: flex;
-    flex-wrap: wrap;
-    max-width: 640px;
-    margin: 18px auto 0;
-    padding: 11px 0;
-    border-top: 1px solid var(--border);
-    border-bottom: 1px solid var(--border);
-  }
-  .stat { flex: 1 1 0; min-width: 100px; text-align: center; position: relative; padding: 2px 8px; }
-  .stat + .stat::before {
-    content: "";
-    position: absolute;
-    left: 0; top: 14%;
-    height: 72%; width: 1px;
-    background: var(--border);
-  }
-  .stat-num { font-size: 22px; font-weight: 700; color: var(--gold); line-height: 1.1; letter-spacing: 0.5px; }
-  .stat-label { font-size: 10.5px; letter-spacing: 1px; text-transform: uppercase; color: var(--text-dim); margin-top: 2px; }
-
   /* how it works */
-  .model > h2 { margin-top: 38px; }
   .steps {
     display: grid;
     grid-template-columns: repeat(3, 1fr);
@@ -497,13 +475,6 @@
       </div>
     </div>
   </header>
-
-  <div class="stats">
-    <div class="stat"><div class="stat-num">28</div><div class="stat-label">Focused apps</div></div>
-    <div class="stat"><div class="stat-num">0</div><div class="stat-label">Ads</div></div>
-    <div class="stat"><div class="stat-num">0</div><div class="stat-label">Subscriptions</div></div>
-    <div class="stat"><div class="stat-num">0</div><div class="stat-label">Data sold</div></div>
-  </div>
 
   <section class="model">
     <h2><svg class="h2-ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>How it works</h2>
