@@ -2,7 +2,10 @@
 //
 // Refreshes the slow-moving metrics the build Worker doesn't cover:
 //   • installs — from Play's bulk report bucket on GCS (stats/installs/*_overview.csv)
-//   • revenue  — RevenueCat v2 overview metrics (only if REVENUECAT_V2_KEY is set)
+//   • revenue  — from Play's monthly sales reports on GCS (sales/salesreport_*.zip),
+//               summed per package over the trailing 28d. Captures one-time IAP,
+//               which RevenueCat's overview `revenue` metric omits. No subscriptions
+//               are sold, so RevenueCat is not queried.
 //
 // (Ratings were removed: the public Play listing only exposes per-app star labels
 //  for the "similar apps" carousel, not reliably the subject app, so scraping it
@@ -13,8 +16,8 @@
 // Worker so each stays under the free-plan 50-subrequest cap, and because these
 // numbers change at most daily.
 //
-// Secrets:  GOOGLE_SA_KEY (shared Play service account), TRIGGER_SECRET (optional),
-//           REVENUECAT_V2_KEY (optional). Var: GCS_BUCKET.
+// Secrets:  GOOGLE_SA_KEY (shared Play service account), TRIGGER_SECRET (optional).
+//           Var: GCS_BUCKET.
 
 const STORAGE_SCOPE = 'https://www.googleapis.com/auth/devstorage.read_only';
 const CONCURRENCY = 5;
@@ -111,31 +114,6 @@ async function readInstalls(bucket, token, objectName) {
   const last = lines[lines.length - 1].split(',');
   const num = v => (v == null || v === '' || isNaN(+v) ? null : +v);
   return { activeInstalls: iActive >= 0 ? num(last[iActive]) : null, totalInstalls: iTotal >= 0 ? num(last[iTotal]) : null };
-}
-
-// ---- RevenueCat v2 overview (optional) -------------------------------------
-// REVENUECAT_V2_KEY may hold several v2 keys (comma/space/newline separated) —
-// v2 keys are project-scoped, so one key per project is needed for full coverage.
-// We list each key's projects and aggregate, deduping by project id.
-async function revenueCatOverview(secret) {
-  const keys = secret.split(/[\s,]+/).filter(Boolean);
-  const seen = new Set();
-  const out = [];
-  for (const key of keys) {
-    const auth = { Authorization: `Bearer ${key}` };
-    const pr = await fetch('https://api.revenuecat.com/v2/projects', { headers: auth });
-    if (!pr.ok) {
-      out.push({ id: null, name: null, metrics: null, error: `projects ${pr.status}: ${(await pr.text()).slice(0, 120)}` });
-      continue;
-    }
-    for (const p of (await pr.json()).items || []) {
-      if (seen.has(p.id)) continue;
-      seen.add(p.id);
-      const m = await fetch(`https://api.revenuecat.com/v2/projects/${p.id}/metrics/overview`, { headers: auth });
-      out.push({ id: p.id, name: p.name, metrics: m.ok ? (await m.json()).metrics || [] : null, error: m.ok ? null : `overview ${m.status}` });
-    }
-  }
-  return { projects: out };
 }
 
 // ---- Play sales reports (one-time + subscription purchase revenue) ----------
@@ -247,7 +225,7 @@ async function refresh(env) {
   // Phase 1: installs (GCS) — list once, then one fetch per app.
   const fileMap = await latestInstallFiles(env.GCS_BUCKET, token);
   const rows = await pool(apps, CONCURRENCY, async app => {
-    const row = { androidPackage: app.androidPackage, displayName: app.displayName, activeInstalls: null, totalInstalls: null, mrr: null, revenue: null, subs: null, error: null };
+    const row = { androidPackage: app.androidPackage, displayName: app.displayName, activeInstalls: null, totalInstalls: null, revenue: null, error: null };
     const f = fileMap[app.androidPackage];
     if (f) {
       try {
@@ -259,45 +237,10 @@ async function refresh(env) {
     return row;
   });
 
-  // Phase 2: revenue (RevenueCat) — optional.
-  let revenue = null;
-  if (env.REVENUECAT_V2_KEY) {
-    try {
-      revenue = await revenueCatOverview(env.REVENUECAT_V2_KEY);
-    } catch (e) {
-      revenue = { error: String(e.message || e) };
-    }
-  }
-
-  // Attach per-app revenue by matching RC project name -> app display name
-  // (one RC project per app). Overall totals are summed on the page separately.
-  if (revenue && Array.isArray(revenue.projects)) {
-    const norm = s => (s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
-    // RevenueCat project names don't always equal the app's display name.
-    // Map normalized RC project name -> normalized app displayName for those.
-    const RC_ALIASES = {
-      armysurvivalhandbook: 'armysurvivalmanual', // RC "Army Survival Handbook" -> app "Army Survival Manual"
-      mutcd: 'mutcd11thedition',                  // RC "MUTCD" -> app "MUTCD 11th Edition"
-    };
-    const revByName = {};
-    for (const p of revenue.projects) {
-      if (!p.metrics) continue;
-      const get = id => {
-        const m = p.metrics.find(x => x.id === id);
-        return m && typeof m.value === 'number' ? m.value : null;
-      };
-      const key = RC_ALIASES[norm(p.name)] || norm(p.name);
-      revByName[key] = { mrr: get('mrr'), revenue: get('revenue'), subs: get('active_subscriptions') };
-    }
-    for (const r of rows) {
-      const hit = revByName[norm(r.displayName)];
-      if (hit) Object.assign(r, hit);
-    }
-  }
-
-  // Phase 3: authoritative purchase revenue from Play sales reports (incl.
-  // one-time IAP, which RevenueCat's overview metric omits). Keyed by package,
-  // so it overrides the RC `revenue` value (always 0 for non-subscription apps).
+  // Phase 2: purchase revenue from Play sales reports (incl. one-time IAP).
+  // We sell no subscriptions, so RevenueCat is not queried — Play's sales report
+  // is the authoritative per-package record of actual purchases. (RC's overview
+  // `revenue` metric omits one-time purchases entirely.)
   let sales = null;
   try {
     sales = await playSalesRevenue(env.GCS_BUCKET, token, 28);
@@ -316,7 +259,6 @@ async function refresh(env) {
     JSON.stringify({
       metricsAt: new Date().toISOString(),
       apps: Object.values(byPkg),
-      revenue,
       sales,
       summary: {
         totalActiveInstalls: sum('activeInstalls'),
@@ -332,7 +274,6 @@ async function refresh(env) {
     totalActiveInstalls: sum('activeInstalls'),
     totalRevenue28d: Math.round(sum('revenue') * 100) / 100,
     sales: sales ? (sales.error || `${Object.keys(sales.byPkg || {}).length} pkg(s) from ${(sales.sources || []).length} report(s)`) : 'n/a',
-    revenue: revenue ? (revenue.error || `${(revenue.projects || []).length} project(s)`) : 'no key',
   };
 }
 

@@ -130,8 +130,6 @@
           <th class="trk">Production</th>
           <th class="num">Installs</th>
           <th class="num">Rev 28d</th>
-          <th class="num">MRR</th>
-          <th class="num">Subs</th>
           <th>Links</th>
         </tr>
       </thead>
@@ -226,29 +224,9 @@ function row(app) {
     ${trackCells}
     ${num(m.activeInstalls)}
     ${money2(m.revenue)}
-    ${num(m.mrr, '$')}
-    ${num(m.subs)}
     ${storeCell(app)}
   </tr>`;
 }
-
-// Sum revenue (28d) / MRR / subs across RevenueCat projects for the summary chips.
-function extractRevenue(rev) {
-  if (!rev || !Array.isArray(rev.projects)) return { revenue: null, mrr: null, subs: null };
-  let revenue = null, mrr = null, subs = null;
-  for (const p of rev.projects) {
-    for (const metric of p.metrics || []) {
-      const id = (metric.id || '').toLowerCase();
-      const v = typeof metric.value === 'number' ? metric.value : null;
-      if (v == null) continue;
-      if (id === 'revenue') revenue = (revenue || 0) + v;
-      else if (id === 'mrr') mrr = (mrr || 0) + v;
-      else if (id === 'active_subscriptions') subs = (subs || 0) + v;
-    }
-  }
-  return { revenue, mrr, subs };
-}
-const money = n => '$' + Math.round(n).toLocaleString();
 
 async function load() {
   const rows = document.getElementById('rows');
@@ -260,7 +238,7 @@ async function load() {
     const apps = doc.apps || [];
     if (!apps.length) {
       document.getElementById('snapshot').textContent = 'No snapshot yet — run the collector.';
-      rows.innerHTML = `<tr><td colspan="11"><div class="empty">No data. Run <code>node SEDX-site/collect-dashboard.js</code> on the laptop to populate this dashboard.</div></td></tr>`;
+      rows.innerHTML = `<tr><td colspan="9"><div class="empty">No data. Run <code>node SEDX-site/collect-dashboard.js</code> on the laptop to populate this dashboard.</div></td></tr>`;
       document.getElementById('chips').innerHTML = '';
       return;
     }
@@ -278,10 +256,6 @@ async function load() {
       chips += `<span class="chip"><b>${mx.summary.totalActiveInstalls.toLocaleString()}</b> active installs</span>`;
     if (mx.summary?.totalRevenue28d != null)
       chips += `<span class="chip"><b>$${mx.summary.totalRevenue28d.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b> revenue (28d, Play)</span>`;
-    const rev = extractRevenue(mx.revenue);
-    if (rev.mrr != null) chips += `<span class="chip"><b>${money(rev.mrr)}</b> MRR</span>`;
-    if (rev.revenue != null) chips += `<span class="chip"><b>${money(rev.revenue)}</b> rev (28d)</span>`;
-    if (rev.subs != null) chips += `<span class="chip"><b>${rev.subs.toLocaleString()}</b> subscribers</span>`;
     document.getElementById('chips').innerHTML = chips;
 
     // Production-first, then by name, so live apps sit at the top.
