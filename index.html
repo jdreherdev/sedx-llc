@@ -133,6 +133,43 @@
   .value-title { color: var(--text); font-weight: 600; font-size: 15px; margin: 0 0 3px; }
   .value-desc { color: var(--text-dim); font-size: 13.5px; line-height: 1.5; margin: 0; }
 
+  /* AI-on-your-terms highlight */
+  .ai-block {
+    margin-top: 26px;
+    border: 1px solid rgba(201, 162, 74, 0.25);
+    background: rgba(201, 162, 74, 0.05);
+    border-radius: 14px;
+    padding: 22px 24px;
+  }
+  .ai-head { display: flex; align-items: center; gap: 10px; margin-bottom: 4px; }
+  .ai-head svg { width: 20px; height: 20px; flex-shrink: 0; fill: none; stroke: var(--gold); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .ai-title { font-size: 16px; font-weight: 700; color: var(--text); margin: 0; }
+  .ai-lead { color: var(--text-dim); font-size: 14px; margin: 0 0 18px; }
+  .ai-opts { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 28px; }
+  .ai-opt { display: flex; gap: 12px; align-items: flex-start; }
+  .ai-opt-ic { flex-shrink: 0; width: 34px; height: 34px; border-radius: 9px; background: rgba(201, 162, 74, 0.13); border: 1px solid rgba(201, 162, 74, 0.22); color: var(--gold); display: flex; align-items: center; justify-content: center; }
+  .ai-opt-ic svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .ai-opt h4 { margin: 0 0 3px; font-size: 14.5px; font-weight: 600; color: var(--text); }
+  .ai-opt p { margin: 0; font-size: 13px; color: var(--text-dim); line-height: 1.5; }
+  @media (max-width: 680px) { .ai-opts { grid-template-columns: 1fr; } }
+
+  /* per-app AI chip */
+  .ai-tag {
+    display: inline-block;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    color: var(--gold);
+    background: rgba(201, 162, 74, 0.13);
+    border: 1px solid rgba(201, 162, 74, 0.30);
+    border-radius: 5px;
+    padding: 1px 6px;
+    margin-left: 7px;
+    vertical-align: middle;
+    position: relative;
+    top: -1px;
+  }
+
   h2 {
     font-size: 13px;
     font-weight: 600;
@@ -435,6 +472,30 @@
         </div>
       </div>
     </div>
+
+    <div class="ai-block">
+      <div class="ai-head">
+        <svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>
+        <p class="ai-title">AI on your terms — without the AI subscription</p>
+      </div>
+      <p class="ai-lead">Where our apps use AI, you're never pushed into a monthly AI plan. You choose how it runs:</p>
+      <div class="ai-opts">
+        <div class="ai-opt">
+          <span class="ai-opt-ic"><svg viewBox="0 0 24 24"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg></span>
+          <div>
+            <h4>Bring your own key</h4>
+            <p>Use your existing Claude or OpenAI key — pay only for what you actually use, at cost, with no marked-up subscription.</p>
+          </div>
+        </div>
+        <div class="ai-opt">
+          <span class="ai-opt-ic"><svg viewBox="0 0 24 24"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg></span>
+          <div>
+            <h4>Or fully on-device</h4>
+            <p>Run AI models locally — free, offline, and private. Nothing leaves your phone, and no key is needed.</p>
+          </div>
+        </div>
+      </div>
+    </div>
   </header>
 
   <div class="stats">
@@ -499,7 +560,7 @@
 
       <div class="card">
         <img class="card-icon" src="icons/survival.png" alt="Army Survival Manual icon">
-        <h3 class="card-name">Army Survival Manual</h3>
+        <h3 class="card-name">Army Survival Manual <span class="ai-tag">AI</span></h3>
         <p class="card-desc">The complete U.S. Army survival field manual — searchable, offline, and built for the field.</p>
         <div class="store-badges">
           <a class="store-badge" href="https://play.google.com/store/apps/details?id=com.rltw.armysurvival" aria-label="Get it on Google Play">
@@ -520,49 +581,49 @@
 
       <div class="card">
         <img class="card-icon" src="icons/branch-infantry.png" alt="Army Infantry Handbook icon">
-        <h3 class="card-name">Army Infantry Handbook</h3>
+        <h3 class="card-name">Army Infantry Handbook <span class="ai-tag">AI</span></h3>
         <p class="card-desc">The Infantry branch handbook — tactics, weapons, and small-unit doctrine, offline and field-ready.</p>
         <a class="btn btn-soon">Coming Soon</a>
       </div>
 
       <div class="card">
         <img class="card-icon" src="icons/branch-armor.png" alt="Army Armor Handbook icon">
-        <h3 class="card-name">Army Armor Handbook</h3>
+        <h3 class="card-name">Army Armor Handbook <span class="ai-tag">AI</span></h3>
         <p class="card-desc">The Armor branch handbook — mounted maneuver, gunnery, and combined arms reference.</p>
         <a class="btn btn-soon">Coming Soon</a>
       </div>
 
       <div class="card">
         <img class="card-icon" src="icons/branch-aviation.png" alt="Army Aviation Handbook icon">
-        <h3 class="card-name">Army Aviation Handbook</h3>
+        <h3 class="card-name">Army Aviation Handbook <span class="ai-tag">AI</span></h3>
         <p class="card-desc">The Aviation branch handbook — rotary-wing operations, aircrew coordination, and air-ground integration.</p>
         <a class="btn btn-soon">Coming Soon</a>
       </div>
 
       <div class="card">
         <img class="card-icon" src="icons/branch-fieldartillery.png" alt="Army Field Artillery Handbook icon">
-        <h3 class="card-name">Army Field Artillery Handbook</h3>
+        <h3 class="card-name">Army Field Artillery Handbook <span class="ai-tag">AI</span></h3>
         <p class="card-desc">The Field Artillery branch handbook — fire support, gunnery, and targeting reference.</p>
         <a class="btn btn-soon">Coming Soon</a>
       </div>
 
       <div class="card">
         <img class="card-icon" src="icons/branch-medical.png" alt="Army Medical Handbook icon">
-        <h3 class="card-name">Army Medical Handbook</h3>
+        <h3 class="card-name">Army Medical Handbook <span class="ai-tag">AI</span></h3>
         <p class="card-desc">The Medical Corps handbook — combat casualty care, TCCC, and field medicine reference.</p>
         <a class="btn btn-soon">Coming Soon</a>
       </div>
 
       <div class="card">
         <img class="card-icon" src="icons/branch-militarypolice.png" alt="Army Military Police Handbook icon">
-        <h3 class="card-name">Army Military Police Handbook</h3>
+        <h3 class="card-name">Army Military Police Handbook <span class="ai-tag">AI</span></h3>
         <p class="card-desc">The Military Police branch handbook — law enforcement, detainee operations, and security reference.</p>
         <a class="btn btn-soon">Coming Soon</a>
       </div>
 
       <div class="card">
         <img class="card-icon" src="icons/fmlibrary.png" alt="FM Library icon">
-        <h3 class="card-name">FM Library</h3>
+        <h3 class="card-name">FM Library <span class="ai-tag">AI</span></h3>
         <p class="card-desc">A searchable library of U.S. Army Field Manuals and doctrinal publications, all in one place.</p>
         <a class="btn btn-soon">Coming Soon</a>
       </div>
@@ -590,7 +651,7 @@
 
       <div class="card">
         <img class="card-icon" src="icons/helicopter.png" alt="Helicopter Pilot icon">
-        <h3 class="card-name">Helicopter Pilot</h3>
+        <h3 class="card-name">Helicopter Pilot <span class="ai-tag">AI</span></h3>
         <p class="card-desc">The FAA Helicopter Flying Handbook with flashcards, checklists, and study tools.</p>
         <div class="store-badges">
           <a class="store-badge" href="https://play.google.com/store/apps/details?id=com.rltw.helicopterpilot" aria-label="Get it on Google Play">
@@ -646,7 +707,7 @@
 
       <div class="card">
         <img class="card-icon" src="icons/teamhq.png" alt="TeamHQ icon">
-        <h3 class="card-name">TeamHQ</h3>
+        <h3 class="card-name">TeamHQ <span class="ai-tag">AI</span></h3>
         <p class="card-desc">Team coordination and sideline management for coaches, captains, and crews.</p>
         <div class="card-actions">
           <a class="btn btn-soon">Coming Soon</a>
@@ -663,7 +724,7 @@
 
       <div class="card">
         <img class="card-icon" src="icons/abrahamic.png" alt="Abrahamic Reader icon">
-        <h3 class="card-name">Abrahamic Reader</h3>
+        <h3 class="card-name">Abrahamic Reader <span class="ai-tag">AI</span></h3>
         <p class="card-desc">Read the Bible, Torah, and Quran side by side, with cross-referenced passages across all three.</p>
         <a class="btn btn-soon">Coming Soon</a>
       </div>
@@ -691,7 +752,7 @@
 
       <div class="card">
         <img class="card-icon" src="icons/counted.png" alt="Counted icon">
-        <h3 class="card-name">Counted</h3>
+        <h3 class="card-name">Counted <span class="ai-tag">AI</span></h3>
         <p class="card-desc">Calorie tracking with food-photo recognition and a comprehensive nutrition database.</p>
         <a class="btn btn-soon">Coming Soon</a>
       </div>
@@ -705,7 +766,7 @@
 
       <div class="card">
         <img class="card-icon" src="icons/leafy.png" alt="Leafy icon">
-        <h3 class="card-name">Leafy</h3>
+        <h3 class="card-name">Leafy <span class="ai-tag">AI</span></h3>
         <p class="card-desc">Identify plants, insects, and mushrooms — fully on-device, private, pay once.</p>
         <a class="btn btn-soon">Coming Soon</a>
       </div>
