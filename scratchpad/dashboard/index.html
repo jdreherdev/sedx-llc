@@ -129,6 +129,7 @@
           <th class="trk">Beta</th>
           <th class="trk">Production</th>
           <th class="num">Installs</th>
+          <th class="num">Rev 28d</th>
           <th class="num">MRR</th>
           <th class="num">Subs</th>
           <th>Links</th>
@@ -183,6 +184,13 @@ function num(v, suffix = '') {
   return `<td class="num${zero}">${suffix}${v.toLocaleString()}</td>`;
 }
 
+// Money cell with cents (revenue) — dims zero, dash for missing.
+function money2(v) {
+  if (v == null) return `<td class="num dash">—</td>`;
+  const zero = v === 0 ? ' zero' : '';
+  return `<td class="num${zero}">$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>`;
+}
+
 function storeCell(app) {
   const links = [];
   if (app.androidPackage && app.tracks && app.tracks.production)
@@ -217,6 +225,7 @@ function row(app) {
     <td class="num dev"><b>v${esc(app.version || '?')}</b></td>
     ${trackCells}
     ${num(m.activeInstalls)}
+    ${money2(m.revenue)}
     ${num(m.mrr, '$')}
     ${num(m.subs)}
     ${storeCell(app)}
@@ -251,7 +260,7 @@ async function load() {
     const apps = doc.apps || [];
     if (!apps.length) {
       document.getElementById('snapshot').textContent = 'No snapshot yet — run the collector.';
-      rows.innerHTML = `<tr><td colspan="10"><div class="empty">No data. Run <code>node SEDX-site/collect-dashboard.js</code> on the laptop to populate this dashboard.</div></td></tr>`;
+      rows.innerHTML = `<tr><td colspan="11"><div class="empty">No data. Run <code>node SEDX-site/collect-dashboard.js</code> on the laptop to populate this dashboard.</div></td></tr>`;
       document.getElementById('chips').innerHTML = '';
       return;
     }
@@ -267,6 +276,8 @@ async function load() {
       `<span class="chip"><b>${s.onTesting ?? 0}</b> in testing</span>`;
     if (mx.summary?.totalActiveInstalls != null)
       chips += `<span class="chip"><b>${mx.summary.totalActiveInstalls.toLocaleString()}</b> active installs</span>`;
+    if (mx.summary?.totalRevenue28d != null)
+      chips += `<span class="chip"><b>$${mx.summary.totalRevenue28d.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b> revenue (28d, Play)</span>`;
     const rev = extractRevenue(mx.revenue);
     if (rev.mrr != null) chips += `<span class="chip"><b>${money(rev.mrr)}</b> MRR</span>`;
     if (rev.revenue != null) chips += `<span class="chip"><b>${money(rev.revenue)}</b> rev (28d)</span>`;

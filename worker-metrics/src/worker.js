@@ -138,6 +138,99 @@ async function revenueCatOverview(secret) {
   return { projects: out };
 }
 
+// ---- Play sales reports (one-time + subscription purchase revenue) ----------
+// RevenueCat's overview `revenue` metric is subscription-oriented and reports 0
+// for one-time (non-subscription) purchases, so we read Google Play's monthly
+// sales reports from the same GCS bucket instead. These are the authoritative
+// per-transaction record of actual purchases (incl. one-time IAP), keyed by
+// package — no name aliasing needed.
+//   sales/salesreport_<YYYYMM>.zip  ->  salesreport_<YYYYMM>.csv
+
+const zipU16 = (b, o) => b[o] | (b[o + 1] << 8);
+const zipU32 = (b, o) => (b[o] | (b[o + 1] << 8) | (b[o + 2] << 16) | (b[o + 3] << 24)) >>> 0;
+
+async function inflateRaw(bytes) {
+  const stream = new Response(bytes).body.pipeThrough(new DecompressionStream('deflate-raw'));
+  return new Uint8Array(await new Response(stream).arrayBuffer());
+}
+
+// Extract the first entry of a (small, single-file) ZIP as UTF-8 text. Reads the
+// central directory so the compressed size is reliable even with data descriptors.
+async function unzipFirstText(buf) {
+  const b = new Uint8Array(buf);
+  let eocd = -1;
+  for (let i = b.length - 22; i >= 0; i--) {
+    if (b[i] === 0x50 && b[i + 1] === 0x4b && b[i + 2] === 0x05 && b[i + 3] === 0x06) { eocd = i; break; }
+  }
+  if (eocd < 0) throw new Error('zip: no EOCD');
+  const cd = zipU32(b, eocd + 16);
+  if (!(b[cd] === 0x50 && b[cd + 1] === 0x4b && b[cd + 2] === 0x01 && b[cd + 3] === 0x02)) throw new Error('zip: no central dir');
+  const method = zipU16(b, cd + 10);
+  const compSize = zipU32(b, cd + 20);
+  const localOff = zipU32(b, cd + 42);
+  const start = localOff + 30 + zipU16(b, localOff + 26) + zipU16(b, localOff + 28);
+  const comp = b.subarray(start, start + compSize);
+  const out = method === 0 ? comp : await inflateRaw(comp);
+  return new TextDecoder('utf-8').decode(out).replace(/^﻿/, '');
+}
+
+// Minimal RFC-4180 CSV parse (handles quoted fields containing commas/quotes).
+function parseCSV(text) {
+  const rows = []; let row = [], field = '', inq = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inq) {
+      if (c === '"') { if (text[i + 1] === '"') { field += '"'; i++; } else inq = false; }
+      else field += c;
+    } else if (c === '"') inq = true;
+    else if (c === ',') { row.push(field); field = ''; }
+    else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+    else if (c !== '\r') field += c;
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+// Sum Play purchase revenue (USD item price, net of refunds) per package over the
+// trailing `days` window. Reads the latest 1-2 monthly reports to span any edge.
+async function playSalesRevenue(bucket, token, days) {
+  const list = await fetch(`${gcsBase(bucket)}?prefix=${encodeURIComponent('sales/')}&maxResults=1000`, { headers: { Authorization: `Bearer ${token}` } });
+  if (!list.ok) throw new Error(`sales list ${list.status}`);
+  const files = ((await list.json()).items || [])
+    .map(o => o.name).filter(n => /salesreport_\d{6}\.zip$/.test(n)).sort().slice(-2);
+  const cutoff = new Date(Date.now() - days * 86400000).toISOString().slice(0, 10); // YYYY-MM-DD
+  const byPkg = {};
+  let nonUSDskipped = 0;
+  for (const name of files) {
+    const r = await fetch(`${gcsBase(bucket)}/${encodeURIComponent(name)}?alt=media`, { headers: { Authorization: `Bearer ${token}` } });
+    if (!r.ok) continue;
+    const rows = parseCSV(await unzipFirstText(await r.arrayBuffer()));
+    if (rows.length < 2) continue;
+    const h = rows[0];
+    const ix = {
+      date: h.indexOf('Order Charged Date'),
+      status: h.indexOf('Financial Status'),
+      price: h.indexOf('Item Price'),
+      cur: h.indexOf('Currency of Sale'),
+      pkg: h.indexOf('Package ID'),
+    };
+    if (ix.pkg < 0 || ix.price < 0) continue;
+    for (let i = 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (row.length <= ix.pkg) continue;
+      if (ix.date >= 0 && row[ix.date] < cutoff) continue;
+      if (ix.cur >= 0 && row[ix.cur] && row[ix.cur] !== 'USD') { nonUSDskipped++; continue; }
+      const amt = parseFloat(row[ix.price]);
+      if (!isFinite(amt)) continue;
+      const status = (ix.status >= 0 ? row[ix.status] : '').toLowerCase();
+      const sign = /refund|charge.?back/.test(status) ? -1 : 1;
+      byPkg[row[ix.pkg]] = (byPkg[row[ix.pkg]] || 0) + sign * amt;
+    }
+  }
+  for (const k of Object.keys(byPkg)) byPkg[k] = Math.round(byPkg[k] * 100) / 100;
+  return { byPkg, windowDays: days, sources: files, nonUSDskipped };
+}
+
 // ---- collect + write --------------------------------------------------------
 async function refresh(env) {
   if (!env.SCRATCHPAD) throw new Error('SCRATCHPAD KV binding missing');
@@ -202,22 +295,43 @@ async function refresh(env) {
     }
   }
 
+  // Phase 3: authoritative purchase revenue from Play sales reports (incl.
+  // one-time IAP, which RevenueCat's overview metric omits). Keyed by package,
+  // so it overrides the RC `revenue` value (always 0 for non-subscription apps).
+  let sales = null;
+  try {
+    sales = await playSalesRevenue(env.GCS_BUCKET, token, 28);
+    for (const r of rows) {
+      const v = sales.byPkg[r.androidPackage];
+      if (v != null) r.revenue = v;
+    }
+  } catch (e) {
+    sales = { error: String(e.message || e) };
+  }
+
   const byPkg = Object.fromEntries(rows.map(r => [r.androidPackage, r]));
+  const sum = key => Object.values(byPkg).reduce((s, r) => s + (r[key] || 0), 0);
   await env.SCRATCHPAD.put(
     'dashboard-metrics',
     JSON.stringify({
       metricsAt: new Date().toISOString(),
       apps: Object.values(byPkg),
       revenue,
+      sales,
       summary: {
-        totalActiveInstalls: Object.values(byPkg).reduce((s, r) => s + (r.activeInstalls || 0), 0),
+        totalActiveInstalls: sum('activeInstalls'),
+        totalRevenue28d: Math.round(sum('revenue') * 100) / 100,
+        revenueWindowDays: 28,
+        revenueSource: 'play-sales',
       },
     }),
   );
 
   return {
     apps: rows.length,
-    totalActiveInstalls: Object.values(byPkg).reduce((s, r) => s + (r.activeInstalls || 0), 0),
+    totalActiveInstalls: sum('activeInstalls'),
+    totalRevenue28d: Math.round(sum('revenue') * 100) / 100,
+    sales: sales ? (sales.error || `${Object.keys(sales.byPkg || {}).length} pkg(s) from ${(sales.sources || []).length} report(s)`) : 'n/a',
     revenue: revenue ? (revenue.error || `${(revenue.projects || []).length} project(s)`) : 'no key',
   };
 }
