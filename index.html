@@ -67,7 +67,6 @@
   }
   .intro {
     color: var(--text-dim);
-    max-width: 680px;
     font-size: 16px;
     margin: 0;
   }
@@ -76,20 +75,20 @@
   .promise {
     color: var(--text);
     font-size: 16px;
-    max-width: 680px;
     margin: 20px 0 0;
   }
   .promise strong { color: var(--gold); font-weight: 600; }
 
   .values {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(232px, 1fr));
-    gap: 18px 32px;
-    max-width: 880px;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 22px 36px;
     margin: 32px 0 0;
     padding-top: 30px;
     border-top: 1px solid var(--border);
   }
+  @media (max-width: 760px) { .values { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 480px) { .values { grid-template-columns: 1fr; } }
   .value { display: flex; gap: 13px; align-items: flex-start; }
   .value-check {
     flex-shrink: 0;
@@ -300,7 +299,21 @@
         <span class="value-check">✓</span>
         <div>
           <p class="value-title">On-device by default</p>
-          <p class="value-desc">Your data is stored and processed right on your phone wherever it's technically possible — private by design, and it works offline.</p>
+          <p class="value-desc">Your data is stored and processed right on your phone wherever it's technically possible — private by design.</p>
+        </div>
+      </div>
+      <div class="value">
+        <span class="value-check">✓</span>
+        <div>
+          <p class="value-title">No account required</p>
+          <p class="value-desc">Start using any app the moment you open it. No sign-up, no email, no login wall standing between you and your tools.</p>
+        </div>
+      </div>
+      <div class="value">
+        <span class="value-check">✓</span>
+        <div>
+          <p class="value-title">Works fully offline</p>
+          <p class="value-desc">Built to run without a connection — your reference and tools don't depend on our servers being up or your signal being strong.</p>
         </div>
       </div>
     </div>
@@ -472,6 +485,20 @@
       </div>
 
       <div class="card">
+        <img class="card-icon" src="icons/wildside.png" alt="Wildside icon">
+        <h3 class="card-name">Wildside</h3>
+        <p class="card-desc">Explore wildlife sightings on a live map — observations from naturalists worldwide, filterable by species, group, and source.</p>
+        <div class="store-badges">
+          <span class="store-badge placeholder" title="In review — coming soon to Google Play" aria-label="In review — coming soon to Google Play">
+            <img src="badges/google-play.png" alt="Get it on Google Play — coming soon">
+          </span>
+          <span class="store-badge placeholder" title="Coming soon to the App Store" aria-label="Coming soon to the App Store">
+            <img src="badges/app-store.svg" alt="Download on the App Store — coming soon">
+          </span>
+        </div>
+      </div>
+
+      <div class="card">
         <img class="card-icon" src="icons/teamhq.png" alt="TeamHQ icon">
         <h3 class="card-name">TeamHQ</h3>
         <p class="card-desc">Team coordination and sideline management for coaches, captains, and crews.</p>
@@ -535,20 +562,6 @@
         <h3 class="card-name">Leafy</h3>
         <p class="card-desc">Identify plants, insects, and mushrooms — fully on-device, private, pay once.</p>
         <a class="btn btn-soon">Coming Soon</a>
-      </div>
-
-      <div class="card">
-        <img class="card-icon" src="icons/wildside.png" alt="Wildside icon">
-        <h3 class="card-name">Wildside</h3>
-        <p class="card-desc">Explore wildlife sightings on a live map — observations from naturalists worldwide, filterable by species, group, and source.</p>
-        <div class="store-badges">
-          <a class="store-badge" href="https://play.google.com/store/apps/details?id=com.rltw.wildside" aria-label="Get it on Google Play">
-            <img src="badges/google-play.png" alt="Get it on Google Play">
-          </a>
-          <span class="store-badge placeholder" title="Coming soon to the App Store" aria-label="Coming soon to the App Store">
-            <img src="badges/app-store.svg" alt="Download on the App Store — coming soon">
-          </span>
-        </div>
       </div>
 
       <div class="card">
