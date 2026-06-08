@@ -105,7 +105,7 @@
   <a class="crumb" href="./index.html">SEDX, LLC</a>
 
   <h1>Privacy Policy</h1>
-  <p class="updated">Last updated: May 26, 2026</p>
+  <p class="updated">Last updated: June 8, 2026</p>
 
   <div class="summary">
     <p><strong>The short version:</strong> Most SEDX apps work entirely offline, require no account, and collect no personal data. The exceptions — apps that need an account to function — are called out explicitly below.</p>
@@ -132,7 +132,27 @@
   <p>Video Timer records video on your device with a stopwatch overlay. To do this it requests the <strong>camera</strong>, <strong>microphone</strong>, and <strong>local storage / photo library</strong> permissions. Recorded videos are saved to your device's local storage or photo library. We do not upload, view, or have any access to your recordings.</p>
 
   <h3>Counted</h3>
-  <p>Counted is a calorie tracker that requests the <strong>camera</strong> and <strong>photo library</strong> permissions so you can identify foods from photos. When you scan a food item, Counted may send the photo to a third-party image-recognition service to identify what's in it, and may query third-party nutrition databases (such as Open Food Facts and the USDA FoodData Central API) to look up nutrition information for a food. Your diary entries (foods logged, dates, quantities, totals) are stored locally on your device and are not transmitted to any server we operate. We do not require an account.</p>
+  <p>Counted is a calorie tracker designed so that your day-to-day nutrition data never leaves your device unless you ask it to. There is no Counted-operated server. There is no account. The data you log lives in a local SQLite database on your phone.</p>
+
+  <p><strong>What's stored locally on your device:</strong> food entries (foods, dates, quantities, calories, macros), custom foods and recipes, weight history, water intake, fasting sessions, body measurements, daily calorie/macro goals, body stats (sex, age, height, current weight, activity level) used by the goal calculator, and your preferences. None of this is transmitted to a server we operate. You can export the entire database as JSON at any time from Settings &gt; Backup, and restore from that file.</p>
+
+  <p><strong>Camera and photo library</strong> are requested so you can scan a product barcode, snap a nutrition label, or take an AI-assisted photo of a meal. Images stay on your device unless you have enabled AI Vision (see below).</p>
+
+  <p><strong>Third-party nutrition databases.</strong> When you scan a barcode or search for a food, Counted may query Open Food Facts (a non-profit, open-data nutrition database) and the USDA FoodData Central API. Your search terms and barcodes are sent to those services; no other personal data is.</p>
+
+  <p><strong>Health Connect (Android) integration is optional.</strong> If you grant the corresponding permissions, Counted reads weight, basal metabolic rate, active calories burned, total calories burned, exercise sessions, blood glucose, and sleep duration from Health Connect to personalize your daily calorie budget and to populate the optional Glucose and Sleep tiles. With your separate explicit opt-in, Counted writes a Nutrition record back to Health Connect for each food you log so other Android health apps you authorize can read it. Health Connect data is exchanged on-device with the system Health Connect framework; it is not transmitted to us. You can revoke any of these permissions at any time in the Health Connect app.</p>
+
+  <p><strong>AI Vision is optional and uses your own API key.</strong> If you choose to enable the cloud-based label OCR or AI photo meal-logging features, you paste your own Anthropic (Claude) or OpenAI API key in Settings. When you trigger one of those features, the image is sent directly from your device to the provider you chose, using your key, billed to your account with that provider. We do not see, route, or store those requests. The key is held in the device's secure keystore.</p>
+
+  <p><strong>Adaptive hydration alerts are optional</strong> and request the <strong>approximate location</strong> permission so the app can query the free, no-account public weather service Open-Meteo for today's expected high temperature once per day. Your coordinates are rounded before the request and the response is cached locally; no location data is retained by us.</p>
+
+  <p><strong>Notifications</strong> are requested only if you enable meal reminders or the weekly weigh-in reminder. Reminders are scheduled locally on the device with no network round-trip.</p>
+
+  <p><strong>Crash reporting.</strong> Counted uses Sentry's free tier to receive anonymized crash reports — stack traces, device model, OS version, and app version — so we can fix problems we wouldn't otherwise hear about. Sentry is configured with personally-identifying data disabled and screen replays disabled. No food entries, weights, or health metrics are included in crash reports.</p>
+
+  <p><strong>Recipe sharing is local-only.</strong> The optional Recipe QR Share feature encodes a recipe into a QR code so another person can scan it; the data does not pass through us or any server.</p>
+
+  <p><strong>One-time purchase (where applicable).</strong> If a future version of Counted offers a paid feature unlock, payment is processed through the Google Play (or Apple App Store) billing system; receipt validation happens between the store and the app, not via us.</p>
 
   <h3>TeamHQ</h3>
   <p>TeamHQ is a multi-user team coordination App, so it requires an account and synchronizes data between team members through our servers. When you use TeamHQ we collect:</p>
