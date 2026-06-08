@@ -40,11 +40,13 @@
   .head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 8px; }
   h1 { font-size: 26px; margin: 0; font-weight: 600; letter-spacing: -0.3px; }
   .meta { color: var(--text-dim); font-size: 13px; }
-  #refresh {
+  .btns { display: flex; gap: 8px; }
+  .btn {
     background: transparent; border: 1px solid var(--border); color: var(--text-dim);
     font-size: 13px; padding: 6px 14px; border-radius: 8px; cursor: pointer;
   }
-  #refresh:hover { border-color: var(--gold); color: var(--gold); }
+  .btn:hover { border-color: var(--gold); color: var(--gold); }
+  .btn:disabled { opacity: 0.5; cursor: progress; }
 
   .chips { display: flex; gap: 10px; flex-wrap: wrap; margin: 18px 0 26px; }
   .chip {
@@ -109,7 +111,10 @@
   <a class="crumb" href="/scratchpad/">&larr; Internal</a>
   <div class="head">
     <h1>Build Dashboard</h1>
-    <button id="refresh">Refresh</button>
+    <div class="btns">
+      <button class="btn" id="refresh" title="Re-read the latest stored snapshot">Refresh</button>
+      <button class="btn" id="rebuild" title="Re-query Play + RevenueCat now, then reload (takes ~30s)">Force rebuild</button>
+    </div>
   </div>
   <div class="meta" id="snapshot">Loading…</div>
   <div class="chips" id="chips"></div>
@@ -277,7 +282,34 @@ async function load() {
   }
 }
 
+// Force rebuild: kick both cron Workers, then reload the fresh snapshot.
+// Re-querying Play + RevenueCat + GCS takes ~30s, so the button blocks meanwhile.
+async function rebuild() {
+  const btn = document.getElementById('rebuild');
+  const snap = document.getElementById('snapshot');
+  btn.disabled = true;
+  const orig = btn.textContent;
+  btn.textContent = 'Rebuilding…';
+  snap.textContent = 'Rebuilding snapshot — re-querying Play + RevenueCat (~30s)…';
+  try {
+    const res = await fetch('/scratchpad/dashboard-refresh', { method: 'POST' });
+    const out = await res.json().catch(() => ({}));
+    if (!res.ok || !out.ok) {
+      const why = out.error || out.build?.error || out.metrics?.error || ('HTTP ' + res.status);
+      snap.textContent = 'Rebuild failed: ' + why;
+      return;
+    }
+    await load();
+  } catch (e) {
+    snap.textContent = 'Rebuild failed: ' + e.message;
+  } finally {
+    btn.disabled = false;
+    btn.textContent = orig;
+  }
+}
+
 document.getElementById('refresh').addEventListener('click', load);
+document.getElementById('rebuild').addEventListener('click', rebuild);
 load();
 </script>
 </body>
