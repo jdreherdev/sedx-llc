@@ -5,11 +5,11 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>SEDX, LLC</title>
 <meta name="description" content="SEDX, LLC — the company behind RLTW. Reference, training, and team-coordination apps for the military, civilian, and athletic communities.">
-<link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="icon" href="/favicon.ico" sizes="any">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2">
+<link rel="icon" href="/favicon.ico?v=2" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png?v=2">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png?v=2">
 <style>
   :root {
     --bg: #0A0A0A;
@@ -275,7 +275,19 @@
   <header>
     <div class="header-top">
       <div class="brand-lockup">
-        <img class="brand-mark" src="/sedx-mark.svg" alt="SEDX logo">
+        <svg class="brand-mark" viewBox="0 0 100 100" role="img" aria-label="SEDX logo" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <mask id="mblue" maskUnits="userSpaceOnUse" x="0" y="0" width="100" height="100">
+              <rect width="100" height="100" fill="#000"/>
+              <path d="M27 26 L53 50 L27 74" stroke="#fff" stroke-width="24" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+            </mask>
+          </defs>
+          <g fill="none" stroke-width="24" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M27 26 L53 50 L27 74" stroke="#2BA7F4"/>
+            <path d="M73 26 L47 50 L73 74" stroke="#F23D9E"/>
+            <path d="M73 26 L47 50 L73 74" stroke="#6A5AE0" mask="url(#mblue)"/>
+          </g>
+        </svg>
         <h1 class="brand">SEDX<span class="gold">,</span> LLC</h1>
       </div>
       <a class="signin" href="/scratchpad/">Sign in</a>
