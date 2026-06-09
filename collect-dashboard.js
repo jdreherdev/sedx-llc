@@ -121,13 +121,39 @@ async function getPlayTracks(token, pkg) {
   }
 }
 
+// Native Android app (no app.json) — read applicationId/versionName from the
+// Gradle build file. Covers the suite's non-Expo apps (e.g. CutInHalf 3D).
+function discoverNative(dir, name) {
+  const gf = ['android/app/build.gradle.kts', 'android/app/build.gradle']
+    .map(p => path.join(dir, p)).find(fs.existsSync);
+  if (!gf) return null;
+  const txt = fs.readFileSync(gf, 'utf8');
+  const pkg = (txt.match(/applicationId\s*=?\s*["']([^"']+)["']/) || [])[1];
+  if (!pkg) return null;
+  const version = (txt.match(/versionName\s*=?\s*["']([^"']+)["']/) || [])[1] || null;
+  const vc = (txt.match(/versionCode\s*=?\s*(\d+)/) || [])[1];
+  // Prefer the Play listing title for the display name, else the dir name.
+  let displayName = name;
+  const titleFile = path.join(dir, 'fastlane/metadata/android/en-US/title.txt');
+  try { if (fs.existsSync(titleFile)) displayName = fs.readFileSync(titleFile, 'utf8').trim() || name; } catch {}
+  return {
+    name, displayName, appId: pkg, androidPackage: pkg, iosBundleId: null,
+    version, versionCode: vc != null ? +vc : null,
+    saPath: path.join(dir, 'google-service-account.json'),
+  };
+}
+
 // ---- discover apps ----------------------------------------------------------
 function discoverApps() {
   const apps = [];
   for (const name of fs.readdirSync(APPS_DIR)) {
     const dir = path.join(APPS_DIR, name);
     const appJson = path.join(dir, 'app.json');
-    if (!fs.existsSync(appJson)) continue;
+    if (!fs.existsSync(appJson)) {
+      const native = discoverNative(dir, name); // non-Expo apps (e.g. CutInHalf)
+      if (native) apps.push(native);
+      continue;
+    }
     let cfg;
     try {
       cfg = JSON.parse(fs.readFileSync(appJson, 'utf8'));
