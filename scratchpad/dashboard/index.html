@@ -25,6 +25,7 @@
     --alpha: #9B7BB5;
     --internal: #9C9079;
     --ok: #6FA86F;
+    --ios: #5B9BD5;
   }
   * { box-sizing: border-box; }
   html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
@@ -54,6 +55,19 @@
     padding: 6px 14px; font-size: 13px; color: var(--text-dim);
   }
   .chip b { color: var(--text); font-weight: 600; }
+
+  /* charts */
+  .charts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; margin: 8px 0 26px; }
+  @media (max-width: 880px) { .charts { grid-template-columns: 1fr; } }
+  .chartcard { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; padding: 16px 16px 12px; }
+  .chartcard h3 { margin: 0; font-size: 11px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--text-dim); font-weight: 600; }
+  .chartcard .big { font-size: 23px; font-weight: 600; color: var(--text); margin: 3px 0 10px; letter-spacing: -0.3px; font-variant-numeric: tabular-nums; }
+  .chartcard .big .unit { font-size: 12px; color: var(--text-dim); font-weight: 500; margin-left: 5px; }
+  .chartcard svg { width: 100%; height: 96px; display: block; }
+  .chartcard .xr { display: flex; justify-content: space-between; font-size: 10px; color: var(--muted); margin-top: 6px; font-variant-numeric: tabular-nums; }
+  .legend { display: flex; gap: 14px; margin-top: 9px; font-size: 11px; color: var(--text-dim); }
+  .legend .k { display: inline-flex; align-items: center; gap: 5px; }
+  .legend .sw { width: 9px; height: 9px; border-radius: 2px; display: inline-block; }
 
   .tablewrap {
     border: 1px solid var(--border); border-radius: 12px; overflow-x: auto;
@@ -85,6 +99,7 @@
   td.trk.production .tver { color: var(--gold); }
   td.trk.beta .tver       { color: var(--beta); }
   td.trk.alpha .tver      { color: var(--alpha); }
+  td.trk.appstore .tver   { color: var(--ios); }
   td.dash { color: var(--muted); text-align: center; }
   .tstatus { display: block; font-size: 10px; color: var(--muted); margin-top: 1px; }
   .tstatus.rollout { color: var(--beta); }
@@ -113,11 +128,12 @@
     <h1>Build Dashboard</h1>
     <div class="btns">
       <button class="btn" id="refresh" title="Re-read the latest stored snapshot">Refresh</button>
-      <button class="btn" id="rebuild" title="Re-query Play + RevenueCat now, then reload (takes ~30s)">Force rebuild</button>
+      <button class="btn" id="rebuild" title="Re-query Play + App Store now, then reload (takes ~30s)">Force rebuild</button>
     </div>
   </div>
   <div class="meta" id="snapshot">Loading…</div>
   <div class="chips" id="chips"></div>
+  <div class="charts" id="charts"></div>
   <div class="tablewrap">
     <table>
       <thead>
@@ -128,8 +144,9 @@
           <th class="trk">Alpha</th>
           <th class="trk">Beta</th>
           <th class="trk">Production</th>
+          <th class="trk">App Store</th>
           <th class="num">Installs</th>
-          <th class="num">Rev 28d</th>
+          <th class="num">Rev 30d</th>
           <th>Links</th>
         </tr>
       </thead>
@@ -189,6 +206,18 @@ function money2(v) {
   return `<td class="num${zero}">$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>`;
 }
 
+// One <td> for the live App Store (iOS production) version. Independent of the
+// Play track columns — an app can be on the App Store but errored/absent on Play.
+function iosCell(app) {
+  const v = app.iosVersion;
+  if (!v) return `<td class="trk dash">—</td>`;
+  const ahead = app.version && v !== app.version;
+  return `<td class="trk appstore">
+    <span class="tver">${esc(v)}</span>
+    ${ahead ? '<span class="ahead">dev ahead</span>' : ''}
+  </td>`;
+}
+
 function storeCell(app) {
   const links = [];
   if (app.androidPackage && app.tracks && app.tracks.production)
@@ -222,10 +251,102 @@ function row(app) {
     </td>
     <td class="num dev"><b>v${esc(app.version || '?')}</b></td>
     ${trackCells}
+    ${iosCell(app)}
     ${num(m.activeInstalls)}
     ${money2(m.revenue)}
     ${storeCell(app)}
   </tr>`;
+}
+
+// ---- charts (dependency-free inline SVG) -----------------------------------
+// Hex (not CSS vars): var() inside SVG presentation attributes isn't portable.
+const CHART = { gold: '#C9A24A', ios: '#5B9BD5', ok: '#6FA86F', beta: '#6B8FB5' };
+const SVG_W = 300, SVG_H = 96, PAD = { t: 8, r: 3, b: 5, l: 3 };
+
+const niceMax = v => {
+  if (!(v > 0)) return 1;
+  const p = Math.pow(10, Math.floor(Math.log10(v))), n = v / p;
+  return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
+};
+const lastDefined = arr => { for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return arr[i]; return null; };
+
+// Stacked bars (two series, e.g. Android + iOS apps in production).
+function stackedBars(days, a, b, colorA, colorB) {
+  const n = days.length;
+  const totals = days.map((_, i) => (a[i] || 0) + (b[i] || 0));
+  const max = niceMax(Math.max(1, ...totals));
+  const iw = SVG_W - PAD.l - PAD.r, ih = SVG_H - PAD.t - PAD.b;
+  const step = iw / n, bw = step * 0.72;
+  let bars = '';
+  for (let i = 0; i < n; i++) {
+    const x = PAD.l + step * i + (step - bw) / 2;
+    const av = a[i] || 0, bv = b[i] || 0;
+    const ah = ih * av / max, bh = ih * bv / max;
+    const ay = PAD.t + ih - ah, by = ay - bh;
+    if (av) bars += `<rect x="${x.toFixed(1)}" y="${ay.toFixed(1)}" width="${bw.toFixed(1)}" height="${ah.toFixed(1)}" fill="${colorA}"><title>${days[i]}: ${av} Android</title></rect>`;
+    if (bv) bars += `<rect x="${x.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="${colorB}"><title>${days[i]}: ${bv} iOS</title></rect>`;
+  }
+  return `<svg viewBox="0 0 ${SVG_W} ${SVG_H}" preserveAspectRatio="none">${bars}</svg>`;
+}
+
+// Filled area + line (e.g. revenue, active installs).
+function areaLine(values, color, fmt) {
+  const n = values.length;
+  const vals = values.map(v => v || 0);
+  const max = niceMax(Math.max(1, ...vals));
+  const iw = SVG_W - PAD.l - PAD.r, ih = SVG_H - PAD.t - PAD.b;
+  const X = i => PAD.l + (n <= 1 ? iw / 2 : iw * i / (n - 1));
+  const Y = v => PAD.t + ih - ih * (v || 0) / max;
+  const line = vals.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)} ${Y(v).toFixed(1)}`).join(' ');
+  const area = `M${X(0).toFixed(1)} ${(PAD.t + ih).toFixed(1)} ` +
+    vals.map((v, i) => `L${X(i).toFixed(1)} ${Y(v).toFixed(1)}`).join(' ') +
+    ` L${X(n - 1).toFixed(1)} ${(PAD.t + ih).toFixed(1)} Z`;
+  const dots = vals.map((v, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="3" fill="transparent"><title>${values[i] == null ? '—' : (fmt ? fmt(values[i]) : values[i])}</title></circle>`).join('');
+  return `<svg viewBox="0 0 ${SVG_W} ${SVG_H}" preserveAspectRatio="none">
+    <path d="${area}" fill="${color}" opacity="0.12"/>
+    <path d="${line}" fill="none" stroke="${color}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>
+    ${dots}
+  </svg>`;
+}
+
+const usd = v => '$' + Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+function renderCharts(series) {
+  const host = document.getElementById('charts');
+  if (!series || !series.days || !series.days.length) { host.style.display = 'none'; host.innerHTML = ''; return; }
+  host.style.display = '';
+  const days = series.days;
+  const xr = `<div class="xr"><span>${days[0].slice(5)}</span><span>${days[days.length - 1].slice(5)}</span></div>`;
+
+  const a = series.prodAndroid || [], b = series.prodIos || [];
+  const lastA = lastDefined(a) || 0, lastB = lastDefined(b) || 0;
+  const prodCard = `<div class="chartcard">
+    <h3>Apps in production (30d)</h3>
+    <div class="big">${lastA + lastB}<span class="unit">live · Android + iOS</span></div>
+    ${stackedBars(days, a, b, CHART.gold, CHART.ios)}
+    <div class="legend">
+      <span class="k"><span class="sw" style="background:${CHART.gold}"></span>Android ${lastA}</span>
+      <span class="k"><span class="sw" style="background:${CHART.ios}"></span>iOS ${lastB}</span>
+    </div>
+    ${xr}</div>`;
+
+  const rev = series.revenue || [];
+  const revTotal = rev.reduce((s, v) => s + (v || 0), 0);
+  const revCard = `<div class="chartcard">
+    <h3>Revenue (30d, Play)</h3>
+    <div class="big">${usd(revTotal)}</div>
+    ${areaLine(rev, CHART.ok, usd)}
+    ${xr}</div>`;
+
+  const ins = series.activeInstalls || [];
+  const lastIns = lastDefined(ins) || 0;
+  const insCard = `<div class="chartcard">
+    <h3>Active installs (30d)</h3>
+    <div class="big">${lastIns.toLocaleString()}</div>
+    ${areaLine(ins, CHART.beta, v => v.toLocaleString())}
+    ${xr}</div>`;
+
+  host.innerHTML = prodCard + revCard + insCard;
 }
 
 async function load() {
@@ -238,8 +359,9 @@ async function load() {
     const apps = doc.apps || [];
     if (!apps.length) {
       document.getElementById('snapshot').textContent = 'No snapshot yet — run the collector.';
-      rows.innerHTML = `<tr><td colspan="9"><div class="empty">No data. Run <code>node SEDX-site/collect-dashboard.js</code> on the laptop to populate this dashboard.</div></td></tr>`;
+      rows.innerHTML = `<tr><td colspan="10"><div class="empty">No data. Run <code>node SEDX-site/collect-dashboard.js</code> on the laptop to populate this dashboard.</div></td></tr>`;
       document.getElementById('chips').innerHTML = '';
+      renderCharts(null);
       return;
     }
     const s = doc.summary || {};
@@ -250,13 +372,16 @@ async function load() {
 
     let chips =
       `<span class="chip"><b>${s.total ?? apps.length}</b> apps</span>` +
-      `<span class="chip"><b>${s.onProduction ?? 0}</b> in production</span>` +
-      `<span class="chip"><b>${s.onTesting ?? 0}</b> in testing</span>`;
+      `<span class="chip"><b>${s.onProduction ?? 0}</b> on Play production</span>`;
+    if (mx.summary?.onAppStore != null)
+      chips += `<span class="chip"><b>${mx.summary.onAppStore}</b> on App Store</span>`;
+    chips += `<span class="chip"><b>${s.onTesting ?? 0}</b> in testing</span>`;
     if (mx.summary?.totalActiveInstalls != null)
       chips += `<span class="chip"><b>${mx.summary.totalActiveInstalls.toLocaleString()}</b> active installs</span>`;
-    if (mx.summary?.totalRevenue28d != null)
-      chips += `<span class="chip"><b>$${mx.summary.totalRevenue28d.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b> revenue (28d, Play)</span>`;
+    if (mx.summary?.totalRevenue30d != null)
+      chips += `<span class="chip"><b>$${mx.summary.totalRevenue30d.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b> revenue (30d, Play)</span>`;
     document.getElementById('chips').innerHTML = chips;
+    renderCharts(mx.series);
 
     // Production-first, then by name, so live apps sit at the top.
     const ord = a => (a.tracks && a.tracks.production ? 0 : a.onPlay ? 1 : 2);
@@ -268,14 +393,14 @@ async function load() {
 }
 
 // Force rebuild: kick both cron Workers, then reload the fresh snapshot.
-// Re-querying Play + RevenueCat + GCS takes ~30s, so the button blocks meanwhile.
+// Re-querying Play + App Store + GCS takes ~30s, so the button blocks meanwhile.
 async function rebuild() {
   const btn = document.getElementById('rebuild');
   const snap = document.getElementById('snapshot');
   btn.disabled = true;
   const orig = btn.textContent;
   btn.textContent = 'Rebuilding…';
-  snap.textContent = 'Rebuilding snapshot — re-querying Play + RevenueCat (~30s)…';
+  snap.textContent = 'Rebuilding snapshot — re-querying Play + App Store (~30s)…';
   try {
     const res = await fetch('/scratchpad/dashboard-refresh', { method: 'POST' });
     const out = await res.json().catch(() => ({}));

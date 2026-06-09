@@ -51,16 +51,21 @@ export async function onRequest({ request, env }) {
     doc = { ...DEFAULT_DOC };
   }
 
-  // Merge in the daily metrics snapshot (installs / ratings / revenue) by package.
+  // Merge in the daily metrics snapshot by package: installs + revenue, plus the
+  // current App Store version/url (collected by the metrics Worker via iTunes).
   if (rawMetrics) {
     try {
       const m = JSON.parse(rawMetrics);
       const byPkg = Object.fromEntries((m.apps || []).map(a => [a.androidPackage, a]));
       for (const app of doc.apps || []) {
         const mx = byPkg[app.androidPackage];
-        if (mx) app.metrics = { activeInstalls: mx.activeInstalls, totalInstalls: mx.totalInstalls, revenue: mx.revenue };
+        if (mx) {
+          app.metrics = { activeInstalls: mx.activeInstalls, totalInstalls: mx.totalInstalls, revenue: mx.revenue };
+          if (mx.iosVersion) app.iosVersion = mx.iosVersion;
+          if (mx.iosUrl) app.iosUrl = mx.iosUrl; // fresher than the build snapshot's
+        }
       }
-      doc.metrics = { metricsAt: m.metricsAt, summary: m.summary || null };
+      doc.metrics = { metricsAt: m.metricsAt, summary: m.summary || null, series: m.series || null };
     } catch {
       /* leave build-only doc */
     }
