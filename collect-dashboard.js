@@ -143,6 +143,44 @@ function discoverNative(dir, name) {
   };
 }
 
+// Parse one Expo app.json into an app entry (or null if it has no store id).
+function fromAppJson(appJson, fallbackName) {
+  let cfg;
+  try { cfg = JSON.parse(fs.readFileSync(appJson, 'utf8')); } catch { return null; }
+  const e = cfg.expo || cfg;
+  const android = e.android || {}, ios = e.ios || {};
+  const pkg = android.package || null;
+  if (!pkg && !ios.bundleIdentifier) return null;
+  return {
+    name: e.name || fallbackName,
+    displayName: e.name || fallbackName,
+    appId: pkg || ios.bundleIdentifier,
+    androidPackage: pkg,
+    iosBundleId: ios.bundleIdentifier || null,
+    version: e.version || null,
+    versionCode: android.versionCode != null ? android.versionCode : null,
+    saPath: path.join(path.dirname(appJson), 'google-service-account.json'),
+  };
+}
+
+// Monorepo-style products keep the mobile app one level deeper (e.g.
+// SidelineHQ/SidelineHQ → TeamHQ, TrackHQ/TrackHQ → TrackmeetHQ). Scan the
+// immediate subdirs for an app.json with a real package; web/stray ones (no
+// android/ios id) are filtered out by fromAppJson.
+function discoverNested(dir) {
+  const out = [];
+  let ents;
+  try { ents = fs.readdirSync(dir, { withFileTypes: true }); } catch { return out; }
+  for (const ent of ents) {
+    if (!ent.isDirectory() || ent.name === 'node_modules' || ent.name.startsWith('.')) continue;
+    const aj = path.join(dir, ent.name, 'app.json');
+    if (!fs.existsSync(aj)) continue;
+    const app = fromAppJson(aj, ent.name);
+    if (app) out.push(app);
+  }
+  return out;
+}
+
 // ---- discover apps ----------------------------------------------------------
 function discoverApps() {
   const apps = [];
@@ -151,30 +189,12 @@ function discoverApps() {
     const appJson = path.join(dir, 'app.json');
     if (!fs.existsSync(appJson)) {
       const native = discoverNative(dir, name); // non-Expo apps (e.g. CutInHalf)
-      if (native) apps.push(native);
+      if (native) { apps.push(native); continue; }
+      for (const nested of discoverNested(dir)) apps.push(nested); // nested mobile apps
       continue;
     }
-    let cfg;
-    try {
-      cfg = JSON.parse(fs.readFileSync(appJson, 'utf8'));
-    } catch {
-      continue;
-    }
-    const e = cfg.expo || cfg;
-    const android = e.android || {};
-    const ios = e.ios || {};
-    const pkg = android.package || null;
-    if (!pkg && !ios.bundleIdentifier) continue;
-    apps.push({
-      name,
-      displayName: e.name || name,
-      appId: pkg || ios.bundleIdentifier,
-      androidPackage: pkg,
-      iosBundleId: ios.bundleIdentifier || null,
-      version: e.version || null,
-      versionCode: android.versionCode != null ? android.versionCode : null,
-      saPath: path.join(dir, 'google-service-account.json'),
-    });
+    const app = fromAppJson(appJson, name);
+    if (app) apps.push(app);
   }
   return apps.sort((a, b) => a.displayName.localeCompare(b.displayName));
 }
