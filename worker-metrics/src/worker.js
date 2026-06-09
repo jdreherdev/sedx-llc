@@ -115,6 +115,55 @@ async function itunesByBundle(bundleId) {
   return x ? itunesRow(x) : null;
 }
 
+// ---- App Store Connect Sales reports (iOS units + proceeds) -----------------
+// Daily SALES/SUMMARY report per vendor — ONE gzipped TSV holding every app's
+// rows for that day, mapped to our apps by "Apple Identifier" (== iosTrackId).
+//   • Units            = downloads (incl. free + redownloads) → our "downloads"
+//   • Developer Proceeds = proceeds PER UNIT; revenue = Units × that, USD rows
+//     only (matches the Android side's USD-only sum)
+// Apple emits a report only on days with activity (404 otherwise). Auth is an
+// ES256 JWT (P-256) — distinct from Google's RS256. Secrets: ASC_SALES_KEY (.p8),
+// ASC_KEY_ID, ASC_ISSUER_ID; var ASC_VENDOR. All optional — iOS is simply absent
+// until they're set.
+async function ascToken(env) {
+  const now = Math.floor(Date.now() / 1000);
+  const header = b64urlStr(JSON.stringify({ alg: 'ES256', kid: env.ASC_KEY_ID, typ: 'JWT' }));
+  const claim = b64urlStr(JSON.stringify({ iss: env.ASC_ISSUER_ID, iat: now, exp: now + 1200, aud: 'appstoreconnect-v1' }));
+  const input = `${header}.${claim}`;
+  const key = await crypto.subtle.importKey('pkcs8', pemToDer(env.ASC_SALES_KEY), { name: 'ECDSA', namedCurve: 'P-256' }, false, ['sign']);
+  const sig = await crypto.subtle.sign({ name: 'ECDSA', hash: 'SHA-256' }, key, new TextEncoder().encode(input));
+  return `${input}.${b64urlBytes(new Uint8Array(sig))}`; // WebCrypto ECDSA sig is IEEE-P1363 r||s, exactly JWT ES256
+}
+
+// One day's SALES/SUMMARY rows: [{ appleId, units, proceedsUSD }]. [] if no report.
+async function ascSalesDay(token, vendor, day) {
+  const u = `https://api.appstoreconnect.apple.com/v1/salesReports?filter[frequency]=DAILY&filter[reportType]=SALES&filter[reportSubType]=SUMMARY&filter[vendorNumber]=${vendor}&filter[reportDate]=${day}`;
+  const r = await fetch(u, { headers: { Authorization: `Bearer ${token}`, Accept: 'application/a-gzip' } });
+  if (r.status === 404) return [];
+  if (!r.ok) throw new Error(`asc ${r.status}: ${(await r.text()).slice(0, 160)}`);
+  const tsv = new TextDecoder('utf-8').decode(await new Response(r.body.pipeThrough(new DecompressionStream('gzip'))).arrayBuffer());
+  return parseAscSales(tsv);
+}
+
+// Parse a SALES/SUMMARY TSV → per-row units + USD proceeds, keyed by Apple id.
+function parseAscSales(tsv) {
+  const lines = tsv.trim().split('\n');
+  if (lines.length < 2) return [];
+  const h = lines[0].split('\t');
+  const ix = { units: h.indexOf('Units'), proceeds: h.indexOf('Developer Proceeds'), id: h.indexOf('Apple Identifier'), cur: h.indexOf('Currency of Proceeds') };
+  if (ix.id < 0 || ix.units < 0) return [];
+  const out = [];
+  for (let i = 1; i < lines.length; i++) {
+    const c = lines[i].split('\t');
+    if (c.length <= ix.id) continue;
+    const units = parseInt(c[ix.units], 10) || 0;
+    const per = ix.proceeds >= 0 ? parseFloat(c[ix.proceeds]) || 0 : 0;
+    const usd = ix.cur < 0 || c[ix.cur] === 'USD';
+    out.push({ appleId: c[ix.id], units, proceedsUSD: usd ? Math.round(per * units * 100) / 100 : 0 });
+  }
+  return out;
+}
+
 // ---- GCS helpers ------------------------------------------------------------
 const gcsBase = bucket => `https://storage.googleapis.com/storage/v1/b/${bucket}/o`;
 
@@ -157,21 +206,23 @@ async function readInstallsDaily(bucket, token, objectName) {
   const header = lines[0].split(',');
   const iDate = header.indexOf('Date');
   const iActive = header.indexOf('Active Device Installs');
-  const iTotal = header.indexOf('Total User Installs');
+  // "Total User Installs" is a dead column (always 0) in these exports — lifetime
+  // downloads are accumulated from the daily new-install flow instead.
+  const iDaily = header.indexOf('Daily User Installs');
   const num = v => (v == null || v === '' || isNaN(+v) ? null : +v);
-  const byDay = {};
-  if (iDate >= 0 && iActive >= 0) {
-    for (let i = 1; i < lines.length; i++) {
-      const c = lines[i].split(',');
-      const a = num(c[iActive]);
-      if (c[iDate] && a != null) byDay[c[iDate]] = a;
-    }
+  const byDay = {};   // date -> Active Device Installs (a level)
+  const dlByDay = {}; // date -> Daily User Installs (new installs, a flow)
+  for (let i = 1; i < lines.length; i++) {
+    const c = lines[i].split(',');
+    if (!(iDate >= 0 && c[iDate])) continue;
+    if (iActive >= 0) { const a = num(c[iActive]); if (a != null) byDay[c[iDate]] = a; }
+    if (iDaily >= 0) { const d = num(c[iDaily]); if (d != null) dlByDay[c[iDate]] = d; }
   }
   const last = lines[lines.length - 1].split(',');
   return {
     activeInstalls: iActive >= 0 ? num(last[iActive]) : null,
-    totalInstalls: iTotal >= 0 ? num(last[iTotal]) : null,
     byDay,
+    dlByDay,
   };
 }
 
@@ -339,18 +390,23 @@ async function refresh(env) {
     }
   } catch { /* leave iOS empty on lookup failure */ }
 
-  // ---- installs (GCS) — latest month's active count + daily series ----------
+  // ---- Android installs (GCS) — active count + daily new-install flow -------
+  // Over a 30d window the retained Play reports (current + previous month) cover
+  // the whole series, so Android revenue + downloads are recomputed fresh each
+  // run; only the production counts (no source) need the rolling history.
   const fileMap = await installFilesByPkg(env.GCS_BUCKET, token);
   subreq++; // installs list
-  const installsByDay = {}; // 'YYYY-MM-DD' -> total active installs across apps
+  const dlAndroidByDay = {}; // date -> Android new installs (Daily User Installs) across apps
 
   const rows = await pool(apps, CONCURRENCY, async app => {
     const ios = iosByPkg[app.androidPackage] || {};
     const row = {
       androidPackage: app.androidPackage, displayName: app.displayName,
-      activeInstalls: null, totalInstalls: null, revenue: null,
+      activeInstalls: null,                            // Android current installed base (level)
+      revenue: null, revenueIos: null,                // 30d proceeds, per platform
+      downloadsAndroid: null, downloadsIos: null,     // lifetime downloads, per platform
       iosVersion: ios.iosVersion || null, iosTrackId: ios.iosTrackId || null, iosUrl: ios.iosUrl || null,
-      error: null,
+      error: null, _dl: {},                           // _dl: per-day new installs (for lifetime accrual)
     };
     const files = fileMap[app.androidPackage] || [];
     const latest = files[files.length - 1];
@@ -359,46 +415,97 @@ async function refresh(env) {
         const cur = await readInstallsDaily(env.GCS_BUCKET, token, latest.name);
         subreq++;
         row.activeInstalls = cur.activeInstalls;
-        row.totalInstalls = cur.totalInstalls;
-        for (const [d, v] of Object.entries(cur.byDay)) if (window.has(d)) installsByDay[d] = (installsByDay[d] || 0) + v;
+        Object.assign(row._dl, cur.dlByDay);
+        for (const [d, v] of Object.entries(cur.dlByDay)) if (window.has(d)) dlAndroidByDay[d] = (dlAndroidByDay[d] || 0) + v;
       } catch (e) {
         row.error = `installs: ${e.message}`;
       }
     }
     return row;
   });
+  const rowByPkg = Object.fromEntries(rows.map(r => [r.androidPackage, r]));
 
-  // Budget permitting, pull each app's previous month too so the daily installs
-  // series spans a full 30 days from the first run (otherwise it fills in over
-  // a few days as the rolling history accumulates).
+  // Previous month too (budget permitting) — widens the 30d flow window and
+  // closes the month-boundary gap for lifetime accrual. Reserve room for ASC.
   for (const app of apps) {
-    if (subreq >= SUBREQ_BUDGET) break;
+    if (subreq >= SUBREQ_BUDGET - 8) break;
     const files = fileMap[app.androidPackage] || [];
     if (files.length < 2) continue;
     try {
-      const prevMonth = await readInstallsDaily(env.GCS_BUCKET, token, files[files.length - 2].name);
+      const pm = await readInstallsDaily(env.GCS_BUCKET, token, files[files.length - 2].name);
       subreq++;
-      for (const [d, v] of Object.entries(prevMonth.byDay)) if (window.has(d)) installsByDay[d] = (installsByDay[d] || 0) + v;
+      const r = rowByPkg[app.androidPackage];
+      for (const [d, v] of Object.entries(pm.dlByDay)) {
+        if (r) r._dl[d] = v;
+        if (window.has(d)) dlAndroidByDay[d] = (dlAndroidByDay[d] || 0) + v;
+      }
     } catch { /* skip */ }
   }
 
-  // ---- revenue from Play sales reports (incl. one-time IAP) ------------------
-  // We sell no subscriptions, so RevenueCat is not queried — Play's sales report
-  // is the authoritative per-package record of actual purchases.
+  // ---- Android revenue (Play sales reports, 30d) ----------------------------
   let sales = null;
   try {
     sales = await playSalesRevenue(env.GCS_BUCKET, token, WINDOW_DAYS);
-    subreq += 1 + Math.min(2, (sales.sources || []).length); // sales list + report fetches
-    for (const r of rows) {
-      const v = sales.byPkg[r.androidPackage];
-      if (v != null) r.revenue = v;
-    }
-  } catch (e) {
-    sales = { error: String(e.message || e) };
+    subreq += 1 + Math.min(2, (sales.sources || []).length);
+    for (const r of rows) { const v = sales.byPkg[r.androidPackage]; if (v != null) r.revenue = v; }
+  } catch (e) { sales = { error: String(e.message || e) }; }
+  const revAndroidByDay = (sales && sales.byDay) || {};
+
+  // ---- persistent download lifetimes ----------------------------------------
+  // android: accrue Daily User Installs past each app's last-counted date (seeded
+  // offline with the full history). ios: store every day's units/proceeds per
+  // Apple id (tiny — iOS just launched), so lifetime = sum and restatements just
+  // overwrite. iOS revenue/downloads series are derived from here.
+  const life = (await env.SCRATCHPAD.get('dashboard-lifetime', 'json')) || {};
+  life.android ||= {}; life.ios ||= {};
+  for (const r of rows) {
+    const a = (life.android[r.androidPackage] ||= { total: 0, lastDate: '0000-00-00' });
+    let maxD = a.lastDate;
+    for (const [d, v] of Object.entries(r._dl)) { if (d > a.lastDate) a.total += v; if (d > maxD) maxD = d; }
+    a.lastDate = maxD;
+    r.downloadsAndroid = a.total;
+    delete r._dl;
   }
 
-  const byPkg = Object.fromEntries(rows.map(r => [r.androidPackage, r]));
-  const sum = key => Object.values(byPkg).reduce((s, r) => s + (r[key] || 0), 0);
+  // ---- iOS sales (App Store Connect), trailing days -------------------------
+  const byAppleId = Object.fromEntries(rows.filter(r => r.iosTrackId).map(r => [String(r.iosTrackId), r]));
+  let iosReport = 'disabled';
+  if (env.ASC_SALES_KEY && env.ASC_KEY_ID && env.ASC_ISSUER_ID && env.ASC_VENDOR) {
+    try {
+      const tok = await ascToken(env);
+      let got = 0;
+      // Apple lags ~1-2 days and 404s days with no activity; the trailing few
+      // days catch new data, which is merged idempotently (overwrite per date).
+      for (const day of lastNDays(WINDOW_DAYS, today).slice(-6, -1).reverse()) {
+        if (subreq >= SUBREQ_BUDGET) break;
+        const dayRows = await ascSalesDay(tok, env.ASC_VENDOR, day);
+        subreq++;
+        if (!dayRows.length) continue;
+        got++;
+        for (const dr of dayRows) {
+          const slot = (life.ios[dr.appleId] ||= { byDate: {}, revByDate: {} });
+          slot.byDate[day] = dr.units;
+          slot.revByDate[day] = dr.proceedsUSD;
+        }
+      }
+      iosReport = `${got} day(s) with data`;
+    } catch (e) { iosReport = `error: ${String(e.message || e)}`; }
+  }
+  // iOS per-app totals + per-day series (across apps) from the lifetime store.
+  const iosDlByDay = {}, iosRevByDay = {};
+  for (const [appleId, slot] of Object.entries(life.ios)) {
+    const r = byAppleId[appleId];
+    const dlTotal = Object.values(slot.byDate || {}).reduce((s, v) => s + (v || 0), 0);
+    if (r) {
+      r.downloadsIos = dlTotal;
+      r.revenueIos = Math.round(Object.entries(slot.revByDate || {}).reduce((s, [d, v]) => s + (window.has(d) ? v || 0 : 0), 0) * 100) / 100;
+    }
+    for (const [d, v] of Object.entries(slot.byDate || {})) if (window.has(d)) iosDlByDay[d] = (iosDlByDay[d] || 0) + v;
+    for (const [d, v] of Object.entries(slot.revByDate || {})) if (window.has(d)) iosRevByDay[d] = Math.round(((iosRevByDay[d] || 0) + v) * 100) / 100;
+  }
+  await env.SCRATCHPAD.put('dashboard-lifetime', JSON.stringify(life));
+
+  const sum = key => rows.reduce((s, r) => s + (r[key] || 0), 0);
   const onAppStore = rows.filter(r => r.iosVersion).length;
 
   // ---- production counts today (no historical source -> appended daily) -----
@@ -406,39 +513,51 @@ async function refresh(env) {
   const prodAndroid = (build.apps || []).filter(a => a.tracks && a.tracks.production).length;
   const prodIos = onAppStore;
 
-  // ---- merge into rolling history, then derive the 30-day series ------------
   const hist = (await env.SCRATCHPAD.get('dashboard-history', 'json')) || { days: {} };
   if (!hist.days) hist.days = {};
-  const revByDay = (sales && sales.byDay) || {};
-  for (const [d, v] of Object.entries(revByDay)) if (window.has(d)) (hist.days[d] ||= {}).revenue = v;
-  for (const [d, v] of Object.entries(installsByDay)) (hist.days[d] ||= {}).activeInstalls = v;
   (hist.days[today] ||= {}).prodAndroid = prodAndroid;
   hist.days[today].prodIos = prodIos;
   const keep = new Set(lastNDays(HIST_KEEP, today));
   for (const k of Object.keys(hist.days)) if (!keep.has(k)) delete hist.days[k];
   await env.SCRATCHPAD.put('dashboard-history', JSON.stringify(hist));
 
+  // ---- 30-day series (Android + iOS split) ----------------------------------
   const days = lastNDays(WINDOW_DAYS, today);
+  // Cumulative lifetime-downloads line: end at the lifetime total, walk back by
+  // each day's flow. Days before our data have flow 0, so the line goes flat.
+  const cum = (total, flowByDay) => {
+    const out = new Array(days.length); let running = total;
+    for (let i = days.length - 1; i >= 0; i--) { out[i] = Math.max(0, running); running -= flowByDay[days[i]] || 0; }
+    return out;
+  };
+  const totalDownloadsAndroid = sum('downloadsAndroid');
+  const totalDownloadsIos = sum('downloadsIos');
   const series = {
     days,
-    revenue: days.map(d => hist.days[d]?.revenue ?? 0),
-    activeInstalls: days.map(d => hist.days[d]?.activeInstalls ?? null),
+    revenueAndroid: days.map(d => revAndroidByDay[d] ?? 0),
+    revenueIos: days.map(d => iosRevByDay[d] ?? 0),
+    downloadsAndroid: cum(totalDownloadsAndroid, dlAndroidByDay),
+    downloadsIos: cum(totalDownloadsIos, iosDlByDay),
     prodAndroid: carryFill(days.map(d => hist.days[d]?.prodAndroid ?? null)),
     prodIos: carryFill(days.map(d => hist.days[d]?.prodIos ?? null)),
   };
 
+  const r2 = v => Math.round(v * 100) / 100;
   await env.SCRATCHPAD.put(
     'dashboard-metrics',
     JSON.stringify({
       metricsAt: new Date().toISOString(),
-      apps: Object.values(byPkg),
+      apps: rows,
       sales,
+      iosReport,
       series,
       summary: {
         totalActiveInstalls: sum('activeInstalls'),
-        totalRevenue30d: Math.round(sum('revenue') * 100) / 100,
+        totalDownloadsAndroid, totalDownloadsIos,
+        totalRevenue30dAndroid: r2(sum('revenue')),
+        totalRevenue30dIos: r2(sum('revenueIos')),
         revenueWindowDays: WINDOW_DAYS,
-        revenueSource: 'play-sales',
+        revenueSource: 'play-sales + asc-sales',
         onAppStore,
       },
     }),
@@ -448,8 +567,9 @@ async function refresh(env) {
     apps: rows.length,
     subrequests: subreq,
     onAppStore,
-    totalActiveInstalls: sum('activeInstalls'),
-    totalRevenue30d: Math.round(sum('revenue') * 100) / 100,
+    ios: iosReport,
+    downloads: `android ${totalDownloadsAndroid} / ios ${totalDownloadsIos}`,
+    revenue30d: `android $${r2(sum('revenue'))} / ios $${r2(sum('revenueIos'))}`,
     sales: sales ? (sales.error || `${Object.keys(sales.byPkg || {}).length} pkg(s) from ${(sales.sources || []).length} report(s)`) : 'n/a',
   };
 }

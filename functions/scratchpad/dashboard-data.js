@@ -60,7 +60,11 @@ export async function onRequest({ request, env }) {
       for (const app of doc.apps || []) {
         const mx = byPkg[app.androidPackage];
         if (mx) {
-          app.metrics = { activeInstalls: mx.activeInstalls, totalInstalls: mx.totalInstalls, revenue: mx.revenue };
+          app.metrics = {
+            activeInstalls: mx.activeInstalls,
+            downloadsAndroid: mx.downloadsAndroid, downloadsIos: mx.downloadsIos, // lifetime
+            revenue: mx.revenue, revenueIos: mx.revenueIos,                       // 30d proceeds
+          };
           if (mx.iosVersion) app.iosVersion = mx.iosVersion;
           if (mx.iosUrl) app.iosUrl = mx.iosUrl; // fresher than the build snapshot's
         }

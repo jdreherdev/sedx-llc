@@ -15,8 +15,14 @@ id = "bb2bde463eb9447d89b62a352322d280"
 
 [vars]
 GCS_BUCKET = "pubsite_prod_6833260647245584473"
+# App Store Connect (iOS Sales reports). Key id + issuer are not secret; the
+# .p8 is (ASC_SALES_KEY secret). Vendor # from Payments & Financial Reports.
+ASC_KEY_ID = "MLBNV62CQQ"
+ASC_ISSUER_ID = "87c2573e-5366-438f-9328-211aae52cbc0"
+ASC_VENDOR = "94406734"
 
 # Secrets (wrangler secret put, NOT committed):
-#   GOOGLE_SA_KEY      — shared google-service-account.json (same as build Worker)
-#   REVENUECAT_V2_KEY  — RevenueCat v2 secret key (enables revenue; optional)
-#   TRIGGER_SECRET     — enables the manual POST trigger (optional)
+#   GOOGLE_SA_KEY   — shared google-service-account.json (same as build Worker)
+#   ASC_SALES_KEY   — App Store Connect API .p8 contents, Sales/Finance role
+#                     (pipe the AuthKey_<KEYID>.p8 file in). Enables iOS metrics.
+#   TRIGGER_SECRET  — enables the manual POST trigger (optional)

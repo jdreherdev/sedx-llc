@@ -109,6 +109,15 @@
   td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   td.num.zero { color: var(--muted); }
 
+  /* platform-split cells (Android / iOS) */
+  .ah { color: var(--gold); font-weight: 600; }
+  .ih { color: var(--ios); font-weight: 600; }
+  td.split { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  td.split .pa { color: var(--gold); }
+  td.split .pi { color: var(--ios); }
+  td.split .pa.zero, td.split .pi.zero { color: var(--muted); }
+  td.split .psep { color: var(--muted); margin: 0 4px; }
+
   .stores { display: flex; gap: 6px; }
   .store {
     font-size: 11px; color: var(--text-dim); text-decoration: none;
@@ -145,8 +154,8 @@
           <th class="trk">Beta</th>
           <th class="trk">Production</th>
           <th class="trk">App Store</th>
-          <th class="num">Installs</th>
-          <th class="num">Rev 30d</th>
+          <th class="num">Downloads <span class="ah">A</span>/<span class="ih">iOS</span></th>
+          <th class="num">Rev 30d <span class="ah">A</span>/<span class="ih">iOS</span></th>
           <th>Links</th>
         </tr>
       </thead>
@@ -206,6 +215,16 @@ function money2(v) {
   return `<td class="num${zero}">$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>`;
 }
 
+// Android / iOS split cell. `money` formats as USD; otherwise integer counts.
+function splitCell(a, i, money) {
+  const f = v => money
+    ? '$' + Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : Number(v || 0).toLocaleString();
+  if (a == null && i == null) return `<td class="split dash">—</td>`;
+  const za = !a ? ' zero' : '', zi = !i ? ' zero' : '';
+  return `<td class="split"><span class="pa${za}">${f(a)}</span><span class="psep">/</span><span class="pi${zi}">${f(i)}</span></td>`;
+}
+
 // One <td> for the live App Store (iOS production) version. Independent of the
 // Play track columns — an app can be on the App Store but errored/absent on Play.
 function iosCell(app) {
@@ -252,8 +271,8 @@ function row(app) {
     <td class="num dev"><b>v${esc(app.version || '?')}</b></td>
     ${trackCells}
     ${iosCell(app)}
-    ${num(m.activeInstalls)}
-    ${money2(m.revenue)}
+    ${splitCell(m.downloadsAndroid, m.downloadsIos, false)}
+    ${splitCell(m.revenue, m.revenueIos, true)}
     ${storeCell(app)}
   </tr>`;
 }
@@ -269,20 +288,10 @@ const niceMax = v => {
   return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
 };
 const lastDefined = arr => { for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return arr[i]; return null; };
-// Carry the last known value across gaps (and back-fill leading gaps). Used for
-// "level" series like active installs, whose most recent days are null while
-// Play's bulk export catches up (~3-day lag) — without this the line dives to 0.
-function carryFwd(arr) {
-  const out = arr.slice();
-  let last = null;
-  for (let i = 0; i < out.length; i++) { if (out[i] == null) out[i] = last; else last = out[i]; }
-  const first = out.find(v => v != null) ?? 0;
-  for (let i = 0; i < out.length && out[i] == null; i++) out[i] = first;
-  return out;
-}
 
-// Stacked bars (two series, e.g. Android + iOS apps in production).
-function stackedBars(days, a, b, colorA, colorB) {
+// Stacked bars (Android + iOS), e.g. apps in production or per-day revenue.
+function stackedBars(days, a, b, colorA, colorB, fmt) {
+  const f = fmt || (v => v);
   const n = days.length;
   const totals = days.map((_, i) => (a[i] || 0) + (b[i] || 0));
   const max = niceMax(Math.max(1, ...totals));
@@ -294,28 +303,33 @@ function stackedBars(days, a, b, colorA, colorB) {
     const av = a[i] || 0, bv = b[i] || 0;
     const ah = ih * av / max, bh = ih * bv / max;
     const ay = PAD.t + ih - ah, by = ay - bh;
-    if (av) bars += `<rect x="${x.toFixed(1)}" y="${ay.toFixed(1)}" width="${bw.toFixed(1)}" height="${ah.toFixed(1)}" fill="${colorA}"><title>${days[i]}: ${av} Android</title></rect>`;
-    if (bv) bars += `<rect x="${x.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="${colorB}"><title>${days[i]}: ${bv} iOS</title></rect>`;
+    if (av) bars += `<rect x="${x.toFixed(1)}" y="${ay.toFixed(1)}" width="${bw.toFixed(1)}" height="${ah.toFixed(1)}" fill="${colorA}"><title>${days[i]}: ${f(av)} Android</title></rect>`;
+    if (bv) bars += `<rect x="${x.toFixed(1)}" y="${by.toFixed(1)}" width="${bw.toFixed(1)}" height="${bh.toFixed(1)}" fill="${colorB}"><title>${days[i]}: ${f(bv)} iOS</title></rect>`;
   }
   return `<svg viewBox="0 0 ${SVG_W} ${SVG_H}" preserveAspectRatio="none">${bars}</svg>`;
 }
 
-// Filled area + line (e.g. revenue, active installs).
-function areaLine(values, color, fmt) {
-  const n = values.length;
-  const vals = values.map(v => v || 0);
-  const max = niceMax(Math.max(1, ...vals));
+// Stacked filled areas (Android on bottom, iOS on top) — for cumulative levels.
+function stackedArea(days, a, b, colorA, colorB, fmt) {
+  const f = fmt || (v => v);
+  const n = days.length;
+  const A = days.map((_, i) => a[i] || 0), B = days.map((_, i) => b[i] || 0);
+  const top = A.map((v, i) => v + B[i]);
+  const max = niceMax(Math.max(1, ...top));
   const iw = SVG_W - PAD.l - PAD.r, ih = SVG_H - PAD.t - PAD.b;
   const X = i => PAD.l + (n <= 1 ? iw / 2 : iw * i / (n - 1));
   const Y = v => PAD.t + ih - ih * (v || 0) / max;
-  const line = vals.map((v, i) => `${i ? 'L' : 'M'}${X(i).toFixed(1)} ${Y(v).toFixed(1)}`).join(' ');
-  const area = `M${X(0).toFixed(1)} ${(PAD.t + ih).toFixed(1)} ` +
-    vals.map((v, i) => `L${X(i).toFixed(1)} ${Y(v).toFixed(1)}`).join(' ') +
-    ` L${X(n - 1).toFixed(1)} ${(PAD.t + ih).toFixed(1)} Z`;
-  const dots = vals.map((v, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(v).toFixed(1)}" r="3" fill="transparent"><title>${values[i] == null ? '—' : (fmt ? fmt(values[i]) : values[i])}</title></circle>`).join('');
+  const base = PAD.t + ih;
+  const line = pts => pts.map((p, i) => `${i ? 'L' : 'M'}${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ');
+  const ptsA = A.map((v, i) => [X(i), Y(v)]), ptsTop = top.map((v, i) => [X(i), Y(v)]);
+  const bandA = `${line(ptsA)} L${X(n - 1).toFixed(1)} ${base.toFixed(1)} L${X(0).toFixed(1)} ${base.toFixed(1)} Z`;
+  const bandB = `${line(ptsTop)} ${ptsA.slice().reverse().map(p => `L${p[0].toFixed(1)} ${p[1].toFixed(1)}`).join(' ')} Z`;
+  const dots = days.map((d, i) => `<circle cx="${X(i).toFixed(1)}" cy="${Y(top[i]).toFixed(1)}" r="3" fill="transparent"><title>${d}: ${f(A[i])} Android / ${f(B[i])} iOS</title></circle>`).join('');
   return `<svg viewBox="0 0 ${SVG_W} ${SVG_H}" preserveAspectRatio="none">
-    <path d="${area}" fill="${color}" opacity="0.12"/>
-    <path d="${line}" fill="none" stroke="${color}" stroke-width="1.5" vector-effect="non-scaling-stroke" stroke-linejoin="round" stroke-linecap="round"/>
+    <path d="${bandA}" fill="${colorA}" opacity="0.22"/>
+    <path d="${bandB}" fill="${colorB}" opacity="0.30"/>
+    <path d="${line(ptsTop)}" fill="none" stroke="${colorB}" stroke-width="1.3" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
+    <path d="${line(ptsA)}" fill="none" stroke="${colorA}" stroke-width="1.3" vector-effect="non-scaling-stroke" stroke-linejoin="round"/>
     ${dots}
   </svg>`;
 }
@@ -329,35 +343,40 @@ function renderCharts(series) {
   const days = series.days;
   const xr = `<div class="xr"><span>${days[0].slice(5)}</span><span>${days[days.length - 1].slice(5)}</span></div>`;
 
-  const a = series.prodAndroid || [], b = series.prodIos || [];
-  const lastA = lastDefined(a) || 0, lastB = lastDefined(b) || 0;
+  const sum = arr => (arr || []).reduce((s, v) => s + (v || 0), 0);
+  const legend = (aLabel, aVal, iLabel, iVal) => `<div class="legend">
+      <span class="k"><span class="sw" style="background:${CHART.gold}"></span>${aLabel} ${aVal}</span>
+      <span class="k"><span class="sw" style="background:${CHART.ios}"></span>${iLabel} ${iVal}</span>
+    </div>`;
+
+  // Apps in production — stacked count (Android + iOS).
+  const pa = series.prodAndroid || [], pb = series.prodIos || [];
+  const lpa = lastDefined(pa) || 0, lpb = lastDefined(pb) || 0;
   const prodCard = `<div class="chartcard">
     <h3>Apps in production (30d)</h3>
-    <div class="big">${lastA + lastB}<span class="unit">live · Android + iOS</span></div>
-    ${stackedBars(days, a, b, CHART.gold, CHART.ios)}
-    <div class="legend">
-      <span class="k"><span class="sw" style="background:${CHART.gold}"></span>Android ${lastA}</span>
-      <span class="k"><span class="sw" style="background:${CHART.ios}"></span>iOS ${lastB}</span>
-    </div>
-    ${xr}</div>`;
+    <div class="big">${lpa + lpb}<span class="unit">live</span></div>
+    ${stackedBars(days, pa, pb, CHART.gold, CHART.ios)}
+    ${legend('Android', lpa, 'iOS', lpb)}${xr}</div>`;
 
-  const rev = series.revenue || [];
-  const revTotal = rev.reduce((s, v) => s + (v || 0), 0);
+  // Revenue — stacked daily proceeds (Android + iOS).
+  const ra = series.revenueAndroid || [], ri = series.revenueIos || [];
+  const rA = sum(ra), rI = sum(ri);
   const revCard = `<div class="chartcard">
-    <h3>Revenue (30d, Play)</h3>
-    <div class="big">${usd(revTotal)}</div>
-    ${areaLine(rev, CHART.ok, usd)}
-    ${xr}</div>`;
+    <h3>Revenue (30d)</h3>
+    <div class="big">${usd(rA + rI)}</div>
+    ${stackedBars(days, ra, ri, CHART.gold, CHART.ios, usd)}
+    ${legend('Android', usd(rA), 'iOS', usd(rI))}${xr}</div>`;
 
-  const ins = carryFwd(series.activeInstalls || []);
-  const lastIns = lastDefined(ins) || 0;
-  const insCard = `<div class="chartcard">
-    <h3>Active installs (30d)</h3>
-    <div class="big">${lastIns.toLocaleString()}</div>
-    ${areaLine(ins, CHART.beta, v => v.toLocaleString())}
-    ${xr}</div>`;
+  // Downloads — stacked cumulative lifetime totals (Android + iOS).
+  const da = series.downloadsAndroid || [], di = series.downloadsIos || [];
+  const lda = lastDefined(da) || 0, ldi = lastDefined(di) || 0;
+  const dlCard = `<div class="chartcard">
+    <h3>Downloads (lifetime, 30d trend)</h3>
+    <div class="big">${(lda + ldi).toLocaleString()}<span class="unit">total</span></div>
+    ${stackedArea(days, da, di, CHART.gold, CHART.ios, v => v.toLocaleString())}
+    ${legend('Android', lda.toLocaleString(), 'iOS', ldi.toLocaleString())}${xr}</div>`;
 
-  host.innerHTML = prodCard + revCard + insCard;
+  host.innerHTML = prodCard + revCard + dlCard;
 }
 
 async function load() {
@@ -381,16 +400,18 @@ async function load() {
     if (mx.metricsAt) snap += `  ·  metrics ${fmtAgo(mx.metricsAt)}`;
     document.getElementById('snapshot').textContent = snap;
 
+    const su = mx.summary || {};
+    const money = v => '$' + Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     let chips =
       `<span class="chip"><b>${s.total ?? apps.length}</b> apps</span>` +
       `<span class="chip"><b>${s.onProduction ?? 0}</b> on Play production</span>`;
-    if (mx.summary?.onAppStore != null)
-      chips += `<span class="chip"><b>${mx.summary.onAppStore}</b> on App Store</span>`;
+    if (su.onAppStore != null)
+      chips += `<span class="chip"><b>${su.onAppStore}</b> on App Store</span>`;
     chips += `<span class="chip"><b>${s.onTesting ?? 0}</b> in testing</span>`;
-    if (mx.summary?.totalActiveInstalls != null)
-      chips += `<span class="chip"><b>${mx.summary.totalActiveInstalls.toLocaleString()}</b> active installs</span>`;
-    if (mx.summary?.totalRevenue30d != null)
-      chips += `<span class="chip"><b>$${mx.summary.totalRevenue30d.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</b> revenue (30d, Play)</span>`;
+    if (su.totalDownloadsAndroid != null)
+      chips += `<span class="chip"><b><span class="ah">${(su.totalDownloadsAndroid || 0).toLocaleString()}</span> / <span class="ih">${(su.totalDownloadsIos || 0).toLocaleString()}</span></b> downloads</span>`;
+    if (su.totalRevenue30dAndroid != null)
+      chips += `<span class="chip"><b><span class="ah">${money(su.totalRevenue30dAndroid)}</span> / <span class="ih">${money(su.totalRevenue30dIos)}</span></b> revenue (30d)</span>`;
     document.getElementById('chips').innerHTML = chips;
     renderCharts(mx.series);
 
