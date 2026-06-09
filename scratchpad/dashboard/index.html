@@ -421,9 +421,11 @@ async function load() {
     document.getElementById('chips').innerHTML = chips;
     renderCharts(mx.series);
 
-    // Production-first, then by name, so live apps sit at the top.
-    const ord = a => (a.tracks && a.tracks.production ? 0 : a.onPlay ? 1 : 2);
-    apps.sort((a, b) => ord(a) - ord(b) || String(a.displayName).localeCompare(b.displayName));
+    // Highest total revenue first (Android + iOS, 30d), then total downloads
+    // (Android + iOS lifetime), then by name.
+    const rev = a => ((a.metrics?.revenue || 0) + (a.metrics?.revenueIos || 0));
+    const dls = a => ((a.metrics?.downloadsAndroid || 0) + (a.metrics?.downloadsIos || 0));
+    apps.sort((a, b) => rev(b) - rev(a) || dls(b) - dls(a) || String(a.displayName).localeCompare(b.displayName));
     rows.innerHTML = apps.map(appRows).join('');
   } catch (e) {
     document.getElementById('snapshot').textContent = 'Failed to load: ' + e.message;
