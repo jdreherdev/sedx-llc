@@ -114,6 +114,10 @@
   .ih, .pi { color: var(--ios); }
   .pa.zero, .pi.zero { color: var(--muted); }
 
+  /* star rating: value tinted by platform, count dim */
+  td.num .stars { font-variant-numeric: tabular-nums; }
+  td.num .rc { color: var(--muted); font-size: 10px; margin-left: 3px; }
+
   /* two rows per app: Android row then iOS row, no divider between them */
   tbody tr.arow td { border-bottom: none; padding-bottom: 4px; }
   tbody tr.irow td { padding-top: 4px; }
@@ -164,6 +168,7 @@
           <th class="trk">Alpha</th>
           <th class="trk">Beta</th>
           <th class="trk">Production</th>
+          <th class="num">Rating</th>
           <th class="num">Downloads</th>
           <th class="num">Rev 30d</th>
           <th>Links</th>
@@ -236,6 +241,15 @@ function platNum(v, cls, money) {
   return `<td class="num"><span class="${cls}${v ? '' : ' zero'}">${f}</span></td>`;
 }
 
+// Star-rating cell. iOS uses the App Store average (authoritative, via iTunes);
+// Android has no trustworthy aggregate-rating source, so it renders a dash.
+// `value` is null until an app has at least one rating.
+function ratingCell(value, count, cls) {
+  if (value == null) return `<td class="num dash">—</td>`;
+  const rc = count ? `<span class="rc">(${Number(count).toLocaleString()})</span>` : '';
+  return `<td class="num"><span class="stars ${cls}">★ ${Number(value).toFixed(1)}</span>${rc}</td>`;
+}
+
 const playLink = app => (app.androidPackage && app.tracks && app.tracks.production)
   ? `<a class="store" href="https://play.google.com/store/apps/details?id=${esc(app.androidPackage)}" target="_blank" rel="noopener">Play ↗</a>`
   : '<span class="dash">—</span>';
@@ -269,6 +283,7 @@ function appRows(app) {
     <td rowspan="2" class="num dev"><b>v${esc(app.version || '?')}</b></td>
     <td class="os"><span class="osb and">Android</span></td>
     ${aCells}
+    ${ratingCell(m.ratingAndroid, m.ratingAndroidCount, 'pa')}
     ${platNum(m.downloadsAndroid, 'pa', false)}
     ${platNum(m.revenue, 'pa', true)}
     <td>${playLink(app)}</td>
@@ -276,6 +291,7 @@ function appRows(app) {
   <tr class="irow">
     <td class="os"><span class="osb ios">iOS</span></td>
     ${iCells}
+    ${ratingCell(m.ratingIos, m.ratingIosCount, 'pi')}
     ${platNum(m.downloadsIos, 'pi', false)}
     ${platNum(m.revenueIos, 'pi', true)}
     <td>${iosLink(app)}</td>
@@ -394,7 +410,7 @@ async function load() {
     const apps = doc.apps || [];
     if (!apps.length) {
       document.getElementById('snapshot').textContent = 'No snapshot yet — run the collector.';
-      rows.innerHTML = `<tr><td colspan="10"><div class="empty">No data. Run <code>node SEDX-site/collect-dashboard.js</code> on the laptop to populate this dashboard.</div></td></tr>`;
+      rows.innerHTML = `<tr><td colspan="11"><div class="empty">No data. Run <code>node SEDX-site/collect-dashboard.js</code> on the laptop to populate this dashboard.</div></td></tr>`;
       document.getElementById('chips').innerHTML = '';
       renderCharts(null);
       return;

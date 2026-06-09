@@ -15,9 +15,13 @@
 // production counts have no historical source, so they're appended once per run
 // into a rolling KV history ("dashboard-history") and fill the window over time.
 //
-// (Ratings were removed: the public Play listing only exposes per-app star labels
-//  for the "similar apps" carousel, not reliably the subject app, so scraping it
-//  surfaced other apps' ratings. No trustworthy aggregate-rating source exists yet.)
+// Ratings: iOS only. The public iTunes lookup already fetched here returns the
+//  App Store's `averageUserRating` (all versions) — authoritative and free, so we
+//  carry it through per app. Android has no trustworthy aggregate-rating source:
+//  the GCS bulk reports have no stats/ratings/, the Play page embeds no rating
+//  aggregate for low-volume apps, and the visible aria-labels are polluted by the
+//  "similar apps" carousel (they surfaced other apps' ratings). So the Android
+//  rating stays absent until a real source exists; don't re-add the store scrape.
 //
 // Writes KV key "dashboard-metrics"; the gated /scratchpad/dashboard-data Pages
 // Function merges it into each app by package name. Separate from the 6h build
@@ -90,7 +94,15 @@ async function pool(items, limit, fn) {
 const ITUNES_COUNTRY = 'us';
 
 function itunesRow(x) {
-  return { bundleId: x.bundleId, iosVersion: x.version || null, iosTrackId: x.trackId || null, iosUrl: x.trackViewUrl || null };
+  // App Store star rating (all versions). A brand-new app with no ratings reports
+  // averageUserRating 0 / userRatingCount 0 — treat that as "no rating yet" (null)
+  // so the dashboard shows a dash rather than a misleading "0.0".
+  const count = typeof x.userRatingCount === 'number' ? x.userRatingCount : 0;
+  return {
+    bundleId: x.bundleId, iosVersion: x.version || null, iosTrackId: x.trackId || null, iosUrl: x.trackViewUrl || null,
+    iosRating: count > 0 && typeof x.averageUserRating === 'number' ? Math.round(x.averageUserRating * 10) / 10 : null,
+    iosRatingCount: count || null,
+  };
 }
 
 // Batch current-version lookup by numeric track id -> { bundleId: row }.
@@ -406,6 +418,7 @@ async function refresh(env) {
       revenue: null, revenueIos: null,                // 30d proceeds, per platform
       downloadsAndroid: null, downloadsIos: null,     // lifetime downloads, per platform
       iosVersion: ios.iosVersion || null, iosTrackId: ios.iosTrackId || null, iosUrl: ios.iosUrl || null,
+      iosRating: ios.iosRating ?? null, iosRatingCount: ios.iosRatingCount ?? null, // App Store stars
       error: null, _dl: {},                           // _dl: per-day new installs (for lifetime accrual)
     };
     const files = fileMap[app.androidPackage] || [];

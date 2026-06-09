@@ -65,6 +65,7 @@ export async function onRequest({ request, env }) {
             activeInstalls: mx.activeInstalls,
             downloadsAndroid: mx.downloadsAndroid, downloadsIos: mx.downloadsIos, // lifetime
             revenue: mx.revenue, revenueIos: mx.revenueIos,                       // 30d proceeds
+            ratingIos: mx.iosRating ?? null, ratingIosCount: mx.iosRatingCount ?? null, // App Store stars
           };
           if (mx.iosVersion) app.iosVersion = mx.iosVersion;
           if (mx.iosUrl) app.iosUrl = mx.iosUrl; // fresher than the build snapshot's
