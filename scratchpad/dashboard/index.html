@@ -269,6 +269,17 @@ const niceMax = v => {
   return (n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10) * p;
 };
 const lastDefined = arr => { for (let i = arr.length - 1; i >= 0; i--) if (arr[i] != null) return arr[i]; return null; };
+// Carry the last known value across gaps (and back-fill leading gaps). Used for
+// "level" series like active installs, whose most recent days are null while
+// Play's bulk export catches up (~3-day lag) — without this the line dives to 0.
+function carryFwd(arr) {
+  const out = arr.slice();
+  let last = null;
+  for (let i = 0; i < out.length; i++) { if (out[i] == null) out[i] = last; else last = out[i]; }
+  const first = out.find(v => v != null) ?? 0;
+  for (let i = 0; i < out.length && out[i] == null; i++) out[i] = first;
+  return out;
+}
 
 // Stacked bars (two series, e.g. Android + iOS apps in production).
 function stackedBars(days, a, b, colorA, colorB) {
@@ -338,7 +349,7 @@ function renderCharts(series) {
     ${areaLine(rev, CHART.ok, usd)}
     ${xr}</div>`;
 
-  const ins = series.activeInstalls || [];
+  const ins = carryFwd(series.activeInstalls || []);
   const lastIns = lastDefined(ins) || 0;
   const insCard = `<div class="chartcard">
     <h3>Active installs (30d)</h3>
