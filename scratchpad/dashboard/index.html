@@ -109,14 +109,24 @@
   td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
   td.num.zero { color: var(--muted); }
 
-  /* platform-split cells (Android / iOS) */
-  .ah { color: var(--gold); font-weight: 600; }
-  .ih { color: var(--ios); font-weight: 600; }
-  td.split { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
-  td.split .pa { color: var(--gold); }
-  td.split .pi { color: var(--ios); }
-  td.split .pa.zero, td.split .pi.zero { color: var(--muted); }
-  td.split .psep { color: var(--muted); margin: 0 4px; }
+  /* platform tinting (Android gold / iOS blue) */
+  .ah, .pa { color: var(--gold); }
+  .ih, .pi { color: var(--ios); }
+  .pa.zero, .pi.zero { color: var(--muted); }
+
+  /* two rows per app: Android row then iOS row, no divider between them */
+  tbody tr.arow td { border-bottom: none; padding-bottom: 4px; }
+  tbody tr.irow td { padding-top: 4px; }
+  tbody tr.arow:hover td, tbody tr.irow:hover td { background: var(--bg-row-hover); }
+  td.os { white-space: nowrap; }
+  .osb { font-size: 10px; font-weight: 700; letter-spacing: 0.3px; padding: 1px 8px; border-radius: 999px; border: 1px solid var(--border); }
+  .osb.and { color: var(--gold); border-color: rgba(201, 162, 74, 0.45); }
+  .osb.ios { color: var(--ios); border-color: rgba(91, 155, 213, 0.45); }
+  /* iOS App Store state / TestFlight label under the version */
+  .tstate { display: block; font-size: 10px; color: var(--muted); margin-top: 1px; }
+  .tstate.live { color: var(--ok); }
+  .tstate.rev  { color: var(--beta); }
+  .tstate.bad  { color: var(--danger); }
 
   .stores { display: flex; gap: 6px; }
   .store {
@@ -149,13 +159,13 @@
         <tr>
           <th>App</th>
           <th class="num">Dev</th>
+          <th>OS</th>
           <th class="trk">Internal</th>
           <th class="trk">Alpha</th>
           <th class="trk">Beta</th>
           <th class="trk">Production</th>
-          <th class="trk">App Store</th>
-          <th class="num">Downloads <span class="ah">A</span>/<span class="ih">iOS</span></th>
-          <th class="num">Rev 30d <span class="ah">A</span>/<span class="ih">iOS</span></th>
+          <th class="num">Downloads</th>
+          <th class="num">Rev 30d</th>
           <th>Links</th>
         </tr>
       </thead>
@@ -202,78 +212,73 @@ function trackCell(track, t, devVersion) {
   </td>`;
 }
 
-function num(v, suffix = '') {
+// iOS maps onto the shared track columns: App Store → Production, TestFlight →
+// Beta; Internal/Alpha have no iOS equivalent. Production shows the appStoreState.
+const STATE_CLASS = s => !s ? ''
+  : /live/.test(s) ? 'live'
+  : /reject|invalid/.test(s) ? 'bad'
+  : /review|processing|pending|waiting/.test(s) ? 'rev' : '';
+function iTrackCell(track, it) {
+  const t = track === 'production' ? it.production : track === 'beta' ? it.beta : null;
+  if (!t || !t.name) return `<td class="dash">—</td>`;
+  const label = track === 'beta'
+    ? `<span class="tstate">TestFlight</span>`
+    : (t.state ? `<span class="tstate ${STATE_CLASS(t.state)}">${esc(t.state)}</span>` : '');
+  return `<td class="trk appstore"><span class="tver">${esc(t.name)}</span>${label}</td>`;
+}
+
+// Platform-tinted numeric cell (gold for Android row, blue for iOS row).
+function platNum(v, cls, money) {
   if (v == null) return `<td class="num dash">—</td>`;
-  const zero = v === 0 ? ' zero' : '';
-  return `<td class="num${zero}">${suffix}${v.toLocaleString()}</td>`;
+  const f = money
+    ? '$' + Number(v).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+    : Number(v).toLocaleString();
+  return `<td class="num"><span class="${cls}${v ? '' : ' zero'}">${f}</span></td>`;
 }
 
-// Money cell with cents (revenue) — dims zero, dash for missing.
-function money2(v) {
-  if (v == null) return `<td class="num dash">—</td>`;
-  const zero = v === 0 ? ' zero' : '';
-  return `<td class="num${zero}">$${v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>`;
-}
+const playLink = app => (app.androidPackage && app.tracks && app.tracks.production)
+  ? `<a class="store" href="https://play.google.com/store/apps/details?id=${esc(app.androidPackage)}" target="_blank" rel="noopener">Play ↗</a>`
+  : '<span class="dash">—</span>';
+const iosLink = app => app.iosUrl
+  ? `<a class="store" href="${esc(app.iosUrl)}" target="_blank" rel="noopener">App Store ↗</a>`
+  : '<span class="dash">—</span>';
 
-// Android / iOS split cell. `money` formats as USD; otherwise integer counts.
-function splitCell(a, i, money) {
-  const f = v => money
-    ? '$' + Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-    : Number(v || 0).toLocaleString();
-  if (a == null && i == null) return `<td class="split dash">—</td>`;
-  const za = !a ? ' zero' : '', zi = !i ? ' zero' : '';
-  return `<td class="split"><span class="pa${za}">${f(a)}</span><span class="psep">/</span><span class="pi${zi}">${f(i)}</span></td>`;
-}
-
-// One <td> for the live App Store (iOS production) version. Independent of the
-// Play track columns — an app can be on the App Store but errored/absent on Play.
-function iosCell(app) {
-  const v = app.iosVersion;
-  if (!v) return `<td class="trk dash">—</td>`;
-  const ahead = app.version && v !== app.version;
-  return `<td class="trk appstore">
-    <span class="tver">${esc(v)}</span>
-    ${ahead ? '<span class="ahead">dev ahead</span>' : ''}
-  </td>`;
-}
-
-function storeCell(app) {
-  const links = [];
-  if (app.androidPackage && app.tracks && app.tracks.production)
-    links.push(`<a class="store" href="https://play.google.com/store/apps/details?id=${esc(app.androidPackage)}" target="_blank" rel="noopener">Play ↗</a>`);
-  if (app.iosUrl)
-    links.push(`<a class="store" href="${esc(app.iosUrl)}" target="_blank" rel="noopener">App Store ↗</a>`);
-  return `<td>${links.length ? `<div class="stores">${links.join('')}</div>` : '<span class="dash">—</span>'}</td>`;
-}
-
-function row(app) {
-  const liveTracks = TRACK_ORDER.filter(t => app.tracks && app.tracks[t]);
-  const off = liveTracks.length ? '' : 'off';
+// Two stacked rows per app: Android (Play tracks) then iOS (App Store/TestFlight),
+// with no divider between them. App + Dev span both rows.
+function appRows(app) {
   const m = app.metrics || {};
 
-  // App + dev columns are always shown; the four track columns vary.
-  let trackCells;
-  if (app.error) {
-    trackCells = `<td class="trk" colspan="4"><span class="cell-err">${esc(app.error)}</span></td>`;
-  } else if (!app.onPlay) {
-    trackCells = `<td class="trk" colspan="4"><span class="cell-note">Not on Play (no published edit)</span></td>`;
-  } else if (!liveTracks.length) {
-    trackCells = `<td class="trk" colspan="4"><span class="cell-note">No releases on any track</span></td>`;
-  } else {
-    trackCells = TRACK_ORDER.map(t => trackCell(t, app.tracks && app.tracks[t], app.version)).join('');
-  }
+  // Android track cells (or a note spanning all four).
+  let aCells;
+  if (app.error) aCells = `<td class="trk" colspan="4"><span class="cell-err">${esc(app.error)}</span></td>`;
+  else if (!app.onPlay) aCells = `<td class="trk" colspan="4"><span class="cell-note">Not on Play</span></td>`;
+  else if (!TRACK_ORDER.some(t => app.tracks && app.tracks[t])) aCells = `<td class="trk" colspan="4"><span class="cell-note">No releases on any track</span></td>`;
+  else aCells = TRACK_ORDER.map(t => trackCell(t, app.tracks && app.tracks[t], app.version)).join('');
 
-  return `<tr class="${off}">
-    <td>
+  // iOS track cells (or a note).
+  const it = app.iosTracks;
+  const iCells = (it && (it.production || it.beta))
+    ? TRACK_ORDER.map(t => iTrackCell(t, it)).join('')
+    : `<td class="trk" colspan="4"><span class="cell-note">Not on App Store</span></td>`;
+
+  return `<tr class="arow">
+    <td rowspan="2">
       <div class="app-name">${esc(app.displayName)}</div>
       <div class="app-id">${esc(app.androidPackage || app.appId)}</div>
     </td>
-    <td class="num dev"><b>v${esc(app.version || '?')}</b></td>
-    ${trackCells}
-    ${iosCell(app)}
-    ${splitCell(m.downloadsAndroid, m.downloadsIos, false)}
-    ${splitCell(m.revenue, m.revenueIos, true)}
-    ${storeCell(app)}
+    <td rowspan="2" class="num dev"><b>v${esc(app.version || '?')}</b></td>
+    <td class="os"><span class="osb and">Android</span></td>
+    ${aCells}
+    ${platNum(m.downloadsAndroid, 'pa', false)}
+    ${platNum(m.revenue, 'pa', true)}
+    <td>${playLink(app)}</td>
+  </tr>
+  <tr class="irow">
+    <td class="os"><span class="osb ios">iOS</span></td>
+    ${iCells}
+    ${platNum(m.downloadsIos, 'pi', false)}
+    ${platNum(m.revenueIos, 'pi', true)}
+    <td>${iosLink(app)}</td>
   </tr>`;
 }
 
@@ -398,6 +403,7 @@ async function load() {
     const mx = doc.metrics || {};
     let snap = `Snapshot ${fmtAgo(doc.snapshotAt)} · ${new Date(doc.snapshotAt).toLocaleString()}`;
     if (mx.metricsAt) snap += `  ·  metrics ${fmtAgo(mx.metricsAt)}`;
+    if (doc.iosVersionsAt) snap += `  ·  iOS ${fmtAgo(doc.iosVersionsAt)}`;
     document.getElementById('snapshot').textContent = snap;
 
     const su = mx.summary || {};
@@ -418,7 +424,7 @@ async function load() {
     // Production-first, then by name, so live apps sit at the top.
     const ord = a => (a.tracks && a.tracks.production ? 0 : a.onPlay ? 1 : 2);
     apps.sort((a, b) => ord(a) - ord(b) || String(a.displayName).localeCompare(b.displayName));
-    rows.innerHTML = apps.map(row).join('');
+    rows.innerHTML = apps.map(appRows).join('');
   } catch (e) {
     document.getElementById('snapshot').textContent = 'Failed to load: ' + e.message;
   }

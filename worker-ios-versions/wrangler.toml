@@ -1,0 +1,24 @@
+# Worker that tracks each app's iOS version by release track/state (App Store
+# state + TestFlight) from App Store Connect, for the dashboard's iOS row.
+# Deployed separately from the Pages site and the other Workers.
+#   cd SEDX-site/worker-ios-versions && npx wrangler deploy
+name = "sedx-ios-versions"
+main = "src/worker.js"
+compatibility_date = "2025-01-01"
+
+# Every 6 hours, offset from the Android build Worker (which runs on the hour).
+[triggers]
+crons = ["15 */6 * * *"]
+
+[[kv_namespaces]]
+binding = "SCRATCHPAD"
+id = "bb2bde463eb9447d89b62a352322d280"
+
+[vars]
+ASC_KEY_ID = "MLBNV62CQQ"
+ASC_ISSUER_ID = "87c2573e-5366-438f-9328-211aae52cbc0"
+
+# Secrets (wrangler secret put, NOT committed):
+#   ASC_SALES_KEY  — App Store Connect API .p8 contents (same key as the metrics
+#                    Worker; reads appStoreVersions + preReleaseVersions fine)
+#   TRIGGER_SECRET — enables the manual POST trigger (optional)

@@ -39,9 +39,10 @@ export async function onRequest({ request, env }) {
 
   if (request.method !== 'GET') return text('Method not allowed', 405);
 
-  const [rawBuild, rawMetrics] = await Promise.all([
+  const [rawBuild, rawMetrics, rawIosVersions] = await Promise.all([
     env.SCRATCHPAD.get(KV_KEY),
     env.SCRATCHPAD.get('dashboard-metrics'),
+    env.SCRATCHPAD.get('dashboard-ios-versions'),
   ]);
 
   let doc;
@@ -72,6 +73,21 @@ export async function onRequest({ request, env }) {
       doc.metrics = { metricsAt: m.metricsAt, summary: m.summary || null, series: m.series || null };
     } catch {
       /* leave build-only doc */
+    }
+  }
+
+  // Merge iOS version-by-track/state (App Store + TestFlight) onto each app, so
+  // the dashboard can render an iOS row beside the Android Play-track row.
+  if (rawIosVersions) {
+    try {
+      const iv = JSON.parse(rawIosVersions);
+      for (const app of doc.apps || []) {
+        const t = iv.apps?.[app.androidPackage];
+        if (t && !t.error) app.iosTracks = t;
+      }
+      doc.iosVersionsAt = iv.updatedAt || null;
+    } catch {
+      /* leave without iOS tracks */
     }
   }
 
