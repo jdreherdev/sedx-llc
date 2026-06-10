@@ -467,7 +467,8 @@ async function rebuild() {
     }
     await load();
   } catch (e) {
-    snap.textContent = 'Rebuild failed: ' + e.message;
+    const msg = e.message === 'Failed to fetch' ? 'Failed to fetch — session may have expired, try reloading the page' : e.message;
+    snap.textContent = 'Rebuild failed: ' + msg;
   } finally {
     btn.disabled = false;
     btn.textContent = orig;
