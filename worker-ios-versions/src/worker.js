@@ -122,7 +122,10 @@ async function refresh(env) {
   await pool(targets, CONCURRENCY, async app => {
     try {
       const tracks = await iosTracksFor(token, app.appleId);
-      if (tracks) { out[app.androidPackage] = tracks; withData++; }
+      // Keep the App Store Connect numeric app id so consumers can build a
+      // working App Store URL (apps.apple.com/app/id<appleId>) the moment a
+      // listing goes live, without waiting on the flaky iTunes lookup.
+      if (tracks) { out[app.androidPackage] = { ...tracks, appleId: app.appleId }; withData++; }
     } catch (e) {
       out[app.androidPackage] = { error: String(e.message || e) };
     }

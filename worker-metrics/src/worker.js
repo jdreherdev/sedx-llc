@@ -550,6 +550,34 @@ async function refresh(env) {
   for (const k of Object.keys(hist.days)) if (!keep.has(k)) delete hist.days[k];
   await env.SCRATCHPAD.put('dashboard-history', JSON.stringify(hist));
 
+  // ---- public store-listing map (for the marketing homepage) ----------------
+  // Only public store data: package + the live store URL per platform (null
+  // until that listing is actually live and linkable). Served by the ungated
+  // /api/apps Pages Function so the homepage can light up store badges without a
+  // hand edit. No revenue/installs/ratings here — keep it strictly public.
+  // Only advertise a Play link when the production track is actually released
+  // (a completed rollout or a staged rollout in progress) — not a draft/halted
+  // track that has no downloadable build.
+  const androidLive = new Set((build.apps || []).filter(a => {
+    const p = a.tracks && a.tracks.production;
+    return p && (p.status === 'completed' || p.status === 'inProgress');
+  }).map(a => a.androidPackage));
+  const iosLiveSet = new Set(Object.entries(iosVer.apps || {}).filter(([, t]) => t.production && t.production.state === 'live').map(([pkg]) => pkg));
+  const publicApps = {};
+  for (const r of rows) {
+    const pkg = r.androidPackage;
+    const play = androidLive.has(pkg) ? `https://play.google.com/store/apps/details?id=${pkg}` : null;
+    // Prefer the iTunes trackViewUrl (has the app slug); it's only set when the
+    // App Store listing is live. Fall back to a numeric-id link from the ASC app
+    // id (stored by the iOS-versions Worker) whenever ASC reports the app live —
+    // reliable the moment of launch, with no dependency on iTunes indexing.
+    let ios = r.iosUrl || null;
+    const iosId = iosVer.apps?.[pkg]?.appleId;
+    if (!ios && iosLiveSet.has(pkg) && iosId) ios = `https://apps.apple.com/app/id${iosId}`;
+    if (play || ios) publicApps[pkg] = { play, ios };
+  }
+  await env.SCRATCHPAD.put('public-apps', JSON.stringify({ updatedAt: new Date().toISOString(), apps: publicApps }));
+
   // ---- 30-day series (Android + iOS split) ----------------------------------
   const days = lastNDays(WINDOW_DAYS, today);
   // Cumulative lifetime-downloads line: end at the lifetime total, walk back by
