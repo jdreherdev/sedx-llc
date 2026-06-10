@@ -448,7 +448,8 @@ async function load() {
   }
 }
 
-// Force rebuild: kick both cron Workers, then reload the fresh snapshot.
+// Force rebuild: kick all three cron Workers (build + metrics + iOS versions),
+// then reload the fresh snapshot.
 // Re-querying Play + App Store + GCS takes ~30s, so the button blocks meanwhile.
 async function rebuild() {
   const btn = document.getElementById('rebuild');
@@ -461,7 +462,7 @@ async function rebuild() {
     const res = await fetch('/scratchpad/dashboard-refresh', { method: 'POST' });
     const out = await res.json().catch(() => ({}));
     if (!res.ok || !out.ok) {
-      const why = out.error || out.build?.error || out.metrics?.error || ('HTTP ' + res.status);
+      const why = out.error || out.build?.error || out.metrics?.error || out.ios?.error || ('HTTP ' + res.status);
       snap.textContent = 'Rebuild failed: ' + why;
       return;
     }

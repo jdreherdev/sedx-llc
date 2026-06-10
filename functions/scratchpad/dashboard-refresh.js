@@ -18,6 +18,7 @@
 
 const BUILD_WORKER_DEFAULT = 'https://sedx-dashboard-cron.jondreher.workers.dev/';
 const METRICS_WORKER_DEFAULT = 'https://sedx-dashboard-metrics.jondreher.workers.dev/';
+const IOS_WORKER_DEFAULT = 'https://sedx-ios-versions.jondreher.workers.dev/';
 
 const json = (body, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -45,20 +46,24 @@ export async function onRequest({ request, env }) {
   if (!env.TRIGGER_SECRET)
     return json({ ok: false, error: 'TRIGGER_SECRET not configured on the Pages project' }, 500);
 
-  // ?targets=build|metrics|both (default both). Metrics is the slow one (GCS + RC).
+  // ?targets=build|metrics|ios|all (default all). Metrics is the slow one (GCS + sales reports).
   const url = new URL(request.url);
-  const targets = (url.searchParams.get('targets') || 'both').toLowerCase();
-  const doBuild = targets === 'both' || targets === 'build';
-  const doMetrics = targets === 'both' || targets === 'metrics';
+  const targets = (url.searchParams.get('targets') || 'all').toLowerCase();
+  const all = targets === 'all' || targets === 'both'; // 'both' kept for back-compat
+  const doBuild = all || targets === 'build';
+  const doMetrics = all || targets === 'metrics';
+  const doIos = all || targets === 'ios';
 
   const buildUrl = env.BUILD_WORKER_URL || BUILD_WORKER_DEFAULT;
   const metricsUrl = env.METRICS_WORKER_URL || METRICS_WORKER_DEFAULT;
+  const iosUrl = env.IOS_WORKER_URL || IOS_WORKER_DEFAULT;
 
-  const [build, metrics] = await Promise.all([
+  const [build, metrics, ios] = await Promise.all([
     doBuild ? trigger(buildUrl, env.TRIGGER_SECRET) : Promise.resolve(null),
     doMetrics ? trigger(metricsUrl, env.TRIGGER_SECRET) : Promise.resolve(null),
+    doIos ? trigger(iosUrl, env.TRIGGER_SECRET) : Promise.resolve(null),
   ]);
 
-  const ok = (!doBuild || build?.ok) && (!doMetrics || metrics?.ok);
-  return json({ ok, build, metrics }, ok ? 200 : 502);
+  const ok = (!doBuild || build?.ok) && (!doMetrics || metrics?.ok) && (!doIos || ios?.ok);
+  return json({ ok, build, metrics, ios }, ok ? 200 : 502);
 }
