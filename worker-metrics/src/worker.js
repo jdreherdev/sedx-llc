@@ -524,12 +524,28 @@ async function refresh(env) {
   // ---- production counts today (no historical source -> appended daily) -----
   const build = (await env.SCRATCHPAD.get('dashboard', 'json')) || { apps: [] };
   const prodAndroid = (build.apps || []).filter(a => a.tracks && a.tracks.production).length;
-  const prodIos = onAppStore;
+  // iOS "in production" = apps the App Store reports as live. Prefer the
+  // authoritative App Store Connect state (sedx-ios-versions Worker ->
+  // dashboard-ios-versions KV), which flips to "live" the moment an app is
+  // released; the iTunes lookup (onAppStore) lags hours behind a fresh release
+  // and undercounts, so it's only a fallback when that KV is unavailable.
+  const iosVer = (await env.SCRATCHPAD.get('dashboard-ios-versions', 'json')) || {};
+  const iosLive = Object.values(iosVer.apps || {}).filter(t => t.production && t.production.state === 'live').length;
+  const prodIos = iosLive || onAppStore;
 
   const hist = (await env.SCRATCHPAD.get('dashboard-history', 'json')) || { days: {} };
   if (!hist.days) hist.days = {};
-  (hist.days[today] ||= {}).prodAndroid = prodAndroid;
-  hist.days[today].prodIos = prodIos;
+  hist.days[today] ||= {};
+  // Only record a count when its source produced a trustworthy reading this run.
+  // A transient failure yields 0 — an empty `dashboard` build snapshot, or an
+  // iTunes lookup that threw/returned nothing (common when a manual rebuild fires
+  // all Workers at once and Apple rate-limits). Writing that 0 would clobber the
+  // carried-forward value and the chart shows a phantom drop to zero (and the
+  // "Apps in production" iOS legend reads 0). Leaving today unset lets carryFill
+  // keep the last good value; the next healthy run overwrites today with the real
+  // count. Both sources are legitimately > 0 today, so gating on > 0 is safe.
+  if ((build.apps || []).length) hist.days[today].prodAndroid = prodAndroid;
+  if (prodIos > 0) hist.days[today].prodIos = prodIos;
   const keep = new Set(lastNDays(HIST_KEEP, today));
   for (const k of Object.keys(hist.days)) if (!keep.has(k)) delete hist.days[k];
   await env.SCRATCHPAD.put('dashboard-history', JSON.stringify(hist));
@@ -571,7 +587,7 @@ async function refresh(env) {
         totalRevenue30dIos: r2(sum('revenueIos')),
         revenueWindowDays: WINDOW_DAYS,
         revenueSource: 'play-sales + asc-sales',
-        onAppStore,
+        onAppStore: prodIos, // authoritative ASC live-count (iTunes fallback)
       },
     }),
   );
@@ -579,7 +595,9 @@ async function refresh(env) {
   return {
     apps: rows.length,
     subrequests: subreq,
-    onAppStore,
+    onAppStore: prodIos,
+    iosLiveAsc: iosLive,
+    onAppStoreItunes: onAppStore,
     ios: iosReport,
     downloads: `android ${totalDownloadsAndroid} / ios ${totalDownloadsIos}`,
     revenue30d: `android $${r2(sum('revenue'))} / ios $${r2(sum('revenueIos'))}`,
