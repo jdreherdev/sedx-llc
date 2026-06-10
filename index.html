@@ -858,6 +858,31 @@
       card.appendChild(box);
     }
   }
+  // Sort priority within each section, derived from what's actually linked on
+  // the card (so it reflects the final state, static or upgraded):
+  //   0 both stores · 1 Play only · 2 App Store only · 3 no store links
+  function rank(card) {
+    var p = !!card.querySelector('a.store-badge[href*="play.google.com"]');
+    var i = !!card.querySelector('a.store-badge[href*="apps.apple.com"]');
+    if (p && i) return 0;
+    if (p) return 1;
+    if (i) return 2;
+    return 3;
+  }
+  function reorder() {
+    var grids = document.querySelectorAll('section .grid');
+    for (var g = 0; g < grids.length; g++) {
+      var grid = grids[g];
+      var cards = [];
+      for (var c = 0; c < grid.children.length; c++) {
+        if (grid.children[c].classList.contains('card')) cards.push(grid.children[c]);
+      }
+      // Stable sort: keep authored order within the same rank (idx tiebreaker).
+      cards.map(function (el, idx) { return { el: el, idx: idx, r: rank(el) }; })
+        .sort(function (a, b) { return a.r - b.r || a.idx - b.idx; })
+        .forEach(function (o) { grid.appendChild(o.el); }); // re-append = move in place
+    }
+  }
   fetch('/api/apps', { cache: 'no-store' })
     .then(function (r) { return r.json(); })
     .then(function (d) {
@@ -865,7 +890,8 @@
       var cards = document.querySelectorAll('.card[data-pkg]');
       for (var i = 0; i < cards.length; i++) apply(cards[i], map[cards[i].getAttribute('data-pkg')]);
     })
-    .catch(function () { /* offline / endpoint down → static badges stand */ });
+    .catch(function () { /* offline / endpoint down → static badges stand */ })
+    .then(reorder); // always reorder by whatever ended up linked (live or static)
 })();
 </script>
 </body>
