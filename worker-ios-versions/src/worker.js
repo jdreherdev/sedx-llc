@@ -90,11 +90,20 @@ async function iosTracksFor(token, appleId) {
     (b.createdDate || '').localeCompare(a.createdDate || '') || verCmp(b.versionString, a.versionString))[0];
   const production = pick ? { name: pick.versionString, state: stateLabel(pick.appStoreState) } : null;
 
+  // `production` tracks the newest in-flight version (so the dashboard shows
+  // "waiting review" etc.), but the app stays ON SALE the whole time a new
+  // version is in review: the prior READY_FOR_SALE version keeps selling until
+  // the new one replaces it. Report that separately so consumers (live-app
+  // count, homepage store links) don't drop an app just because it shipped an
+  // update for review.
+  const onSale = asv.find(v => v.appStoreState === 'READY_FOR_SALE');
+  const liveNow = onSale ? { live: true, liveVersion: onSale.versionString } : { live: false };
+
   // TestFlight: highest prerelease (marketing) version.
   const tf = pre.map(v => v.version).sort(verCmp).pop();
   const beta = tf ? { name: tf } : null;
 
-  return (production || beta) ? { production, beta } : null;
+  return (production || beta) ? { production, beta, ...liveNow } : null;
 }
 
 async function pool(items, limit, fn) {

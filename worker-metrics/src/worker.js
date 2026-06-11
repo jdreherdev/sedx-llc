@@ -530,7 +530,12 @@ async function refresh(env) {
   // released; the iTunes lookup (onAppStore) lags hours behind a fresh release
   // and undercounts, so it's only a fallback when that KV is unavailable.
   const iosVer = (await env.SCRATCHPAD.get('dashboard-ios-versions', 'json')) || {};
-  const iosLive = Object.values(iosVer.apps || {}).filter(t => t.production && t.production.state === 'live').length;
+  // "Live" = any version READY_FOR_SALE (the `live` flag), NOT production.state:
+  // production tracks the newest in-flight version, so the moment an update is
+  // submitted its state flips to "waiting review" while the app is still on
+  // sale. The state check remains as back-compat with pre-`live`-flag KV data.
+  const isIosLive = t => t.live || (t.production && t.production.state === 'live');
+  const iosLive = Object.values(iosVer.apps || {}).filter(isIosLive).length;
   const prodIos = iosLive || onAppStore;
 
   const hist = (await env.SCRATCHPAD.get('dashboard-history', 'json')) || { days: {} };
@@ -562,7 +567,7 @@ async function refresh(env) {
     const p = a.tracks && a.tracks.production;
     return p && (p.status === 'completed' || p.status === 'inProgress');
   }).map(a => a.androidPackage));
-  const iosLiveSet = new Set(Object.entries(iosVer.apps || {}).filter(([, t]) => t.production && t.production.state === 'live').map(([pkg]) => pkg));
+  const iosLiveSet = new Set(Object.entries(iosVer.apps || {}).filter(([, t]) => isIosLive(t)).map(([pkg]) => pkg));
   const publicApps = {};
   for (const r of rows) {
     const pkg = r.androidPackage;
