@@ -523,7 +523,41 @@ async function refresh(env) {
 
   // ---- production counts today (no historical source -> appended daily) -----
   const build = (await env.SCRATCHPAD.get('dashboard', 'json')) || { apps: [] };
-  const prodAndroid = (build.apps || []).filter(a => a.tracks && a.tracks.production).length;
+  // Android "in production" means approved & published — not merely "has a
+  // production-track release". The Play track API reports rollout *intent*: a
+  // brand-new app submitted to production shows status "completed" while it is
+  // still sitting in initial review, so counting tracks.production alone
+  // overstates and never moves when an approval actually lands. The only public
+  // approval signal is the store listing itself — it 404s until the app is live.
+  // Probe it once per app and remember the answer in KV ("dashboard-play-live"):
+  // live apps stay live, so steady-state runs probe only apps awaiting review.
+  const prodTrackPkgs = (build.apps || []).filter(a => {
+    const p = a.tracks && a.tracks.production;
+    return p && (p.status === 'completed' || p.status === 'inProgress');
+  }).map(a => a.androidPackage);
+  const playLive = (await env.SCRATCHPAD.get('dashboard-play-live', 'json')) || { apps: {} };
+  let playLiveDirty = false;
+  for (const pkg of prodTrackPkgs) {
+    if (playLive.apps[pkg]) continue;
+    if (subreq >= SUBREQ_BUDGET) break;
+    subreq++;
+    try {
+      const r = await fetch(`https://play.google.com/store/apps/details?id=${pkg}`, {
+        headers: { 'User-Agent': 'sedx-dashboard' }, redirect: 'manual',
+      });
+      // Only a clean 200 proves the listing is live; 404 = still in review (or
+      // unpublished). Anything else (429, consent redirect, 5xx) is
+      // indeterminate — leave the app uncached and let a later run decide.
+      if (r.status === 200) { playLive.apps[pkg] = today; playLiveDirty = true; }
+    } catch { /* indeterminate — retry next run */ }
+  }
+  if (playLiveDirty) await env.SCRATCHPAD.put('dashboard-play-live', JSON.stringify(playLive));
+  const androidLivePkgs = prodTrackPkgs.filter(pkg => playLive.apps[pkg]);
+  const prodAndroid = androidLivePkgs.length;
+  // Per-app flag for the dashboard table: true/false for apps with a production
+  // release (false = submitted but still in review), absent otherwise.
+  const prodTrackSet = new Set(prodTrackPkgs);
+  for (const r of rows) if (prodTrackSet.has(r.androidPackage)) r.playLive = !!playLive.apps[r.androidPackage];
   // iOS "in production" = apps the App Store reports as live. Prefer the
   // authoritative App Store Connect state (sedx-ios-versions Worker ->
   // dashboard-ios-versions KV), which flips to "live" the moment an app is
@@ -549,7 +583,7 @@ async function refresh(env) {
   // "Apps in production" iOS legend reads 0). Leaving today unset lets carryFill
   // keep the last good value; the next healthy run overwrites today with the real
   // count. Both sources are legitimately > 0 today, so gating on > 0 is safe.
-  if ((build.apps || []).length) hist.days[today].prodAndroid = prodAndroid;
+  if ((build.apps || []).length && prodAndroid > 0) hist.days[today].prodAndroid = prodAndroid;
   if (prodIos > 0) hist.days[today].prodIos = prodIos;
   const keep = new Set(lastNDays(HIST_KEEP, today));
   for (const k of Object.keys(hist.days)) if (!keep.has(k)) delete hist.days[k];
@@ -560,13 +594,10 @@ async function refresh(env) {
   // until that listing is actually live and linkable). Served by the ungated
   // /api/apps Pages Function so the homepage can light up store badges without a
   // hand edit. No revenue/installs/ratings here — keep it strictly public.
-  // Only advertise a Play link when the production track is actually released
-  // (a completed rollout or a staged rollout in progress) — not a draft/halted
-  // track that has no downloadable build.
-  const androidLive = new Set((build.apps || []).filter(a => {
-    const p = a.tracks && a.tracks.production;
-    return p && (p.status === 'completed' || p.status === 'inProgress');
-  }).map(a => a.androidPackage));
+  // Only advertise a Play link when the listing is verifiably live (the probed
+  // set above) — a production-track release still in initial review has a
+  // public URL that 404s.
+  const androidLive = new Set(androidLivePkgs);
   const iosLiveSet = new Set(Object.entries(iosVer.apps || {}).filter(([, t]) => isIosLive(t)).map(([pkg]) => pkg));
   const publicApps = {};
   for (const r of rows) {
@@ -621,6 +652,7 @@ async function refresh(env) {
         revenueWindowDays: WINDOW_DAYS,
         revenueSource: 'play-sales + asc-sales',
         onAppStore: prodIos, // authoritative ASC live-count (iTunes fallback)
+        onPlayProduction: prodAndroid, // approved & live (listing probe), not just production-track
       },
     }),
   );

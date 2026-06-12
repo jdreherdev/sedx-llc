@@ -69,6 +69,10 @@ export async function onRequest({ request, env }) {
           };
           if (mx.iosVersion) app.iosVersion = mx.iosVersion;
           if (mx.iosUrl) app.iosUrl = mx.iosUrl; // fresher than the build snapshot's
+          // Play listing liveness (metrics Worker probe): false = production
+          // release submitted but still in initial review; absent = no
+          // production release / not yet probed.
+          if (mx.playLive !== undefined) app.playLive = mx.playLive;
         }
       }
       doc.metrics = { metricsAt: m.metricsAt, summary: m.summary || null, series: m.series || null };

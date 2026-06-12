@@ -117,6 +117,7 @@
   .tstatus { display: block; font-size: 10px; color: var(--muted); margin-top: 1px; }
   .tstatus.rollout { color: var(--beta); }
   .tstatus.halted { color: var(--danger); }
+  .tstatus.rev { color: var(--beta); }
   .ahead { display: block; color: var(--ok); font-size: 10px; margin-top: 1px; }
 
   td.num { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
@@ -209,12 +210,16 @@ function fmtAgo(iso) {
 }
 
 // One <td> for a single Play track.
-function trackCell(track, t, devVersion) {
+function trackCell(track, t, devVersion, inReview) {
   if (!t) return `<td class="dash">—</td>`;
   const vc = (t.versionCodes || []).join(', ');
   const ahead = devVersion && t.name && devVersion !== t.name && track === 'production';
   let status = '';
-  if (t.status === 'inProgress') {
+  if (inReview) {
+    // Production release exists but the public listing isn't live yet — the app
+    // is still in Google's initial review, whatever rollout status Play reports.
+    status = `<span class="tstatus rev">in review</span>`;
+  } else if (t.status === 'inProgress') {
     const pct = t.userFraction != null ? Math.round(t.userFraction * 100) + '%' : 'rolling out';
     status = `<span class="tstatus rollout">${pct}</span>`;
   } else if (t.status === 'halted') {
@@ -263,7 +268,9 @@ function ratingCell(value, count, cls) {
   return `<td class="num"><span class="stars ${cls}">★ ${Number(value).toFixed(1)}</span>${rc}</td>`;
 }
 
-const playLink = app => (app.androidPackage && app.tracks && app.tracks.production)
+// Link only when the listing is actually live (playLive === false means the
+// production release is still in initial review and the URL 404s).
+const playLink = app => (app.androidPackage && app.tracks && app.tracks.production && app.playLive !== false)
   ? `<a class="store" href="https://play.google.com/store/apps/details?id=${esc(app.androidPackage)}" target="_blank" rel="noopener">Play ↗</a>`
   : '<span class="dash">—</span>';
 const iosLink = app => app.iosUrl
@@ -280,7 +287,7 @@ function appRows(app) {
   if (app.error) aCells = `<td class="trk" colspan="4"><span class="cell-err">${esc(app.error)}</span></td>`;
   else if (!app.onPlay) aCells = `<td class="trk" colspan="4"><span class="cell-note">Not on Play</span></td>`;
   else if (!TRACK_ORDER.some(t => app.tracks && app.tracks[t])) aCells = `<td class="trk" colspan="4"><span class="cell-note">No releases on any track</span></td>`;
-  else aCells = TRACK_ORDER.map(t => trackCell(t, app.tracks && app.tracks[t], app.version)).join('');
+  else aCells = TRACK_ORDER.map(t => trackCell(t, app.tracks && app.tracks[t], app.version, t === 'production' && app.playLive === false)).join('');
 
   // iOS track cells (or a note).
   const it = app.iosTracks;
@@ -497,7 +504,7 @@ async function load() {
     const money = v => '$' + Number(v || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     let chips =
       `<span class="chip"><b>${s.total ?? apps.length}</b> apps</span>` +
-      `<span class="chip"><b>${s.onProduction ?? 0}</b> on Play production</span>`;
+      `<span class="chip"><b>${su.onPlayProduction ?? s.onProduction ?? 0}</b> on Play production</span>`;
     if (su.onAppStore != null)
       chips += `<span class="chip"><b>${su.onAppStore}</b> on App Store</span>`;
     chips += `<span class="chip"><b>${s.onTesting ?? 0}</b> in testing</span>`;
