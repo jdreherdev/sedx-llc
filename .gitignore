@@ -5,3 +5,7 @@ Thumbs.db
 *~
 .idea/
 .vscode/
+
+# wrangler local state
+.wrangler/
+**/.wrangler/
