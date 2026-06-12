@@ -417,7 +417,10 @@ async function refresh(env) {
       activeInstalls: null,                            // Android current installed base (level)
       revenue: null, revenueIos: null,                // 30d proceeds, per platform
       downloadsAndroid: null, downloadsIos: null,     // lifetime downloads, per platform
-      iosVersion: ios.iosVersion || null, iosTrackId: ios.iosTrackId || null, iosUrl: ios.iosUrl || null,
+      // trackId is an immutable identifier doubling as next run's lookup cache —
+      // fall back to the prior snapshot's value so one failed iTunes run doesn't
+      // wipe the cache (and with it, ASC sales attribution) for every later run.
+      iosVersion: ios.iosVersion || null, iosTrackId: ios.iosTrackId || prevById[app.androidPackage]?.iosTrackId || null, iosUrl: ios.iosUrl || null,
       iosRating: ios.iosRating ?? null, iosRatingCount: ios.iosRatingCount ?? null, // App Store stars
       error: null, _dl: {},                           // _dl: per-day new installs (for lifetime accrual)
     };
@@ -481,7 +484,16 @@ async function refresh(env) {
   }
 
   // ---- iOS sales (App Store Connect), trailing days -------------------------
+  // Map ASC sales rows ("Apple Identifier") to apps. The iTunes trackId works
+  // when the lookup succeeded this run, but iTunes flakes under rebuild load and
+  // a failed lookup must not orphan sales data — so also map every appleId the
+  // iOS-versions Worker resolved via ASC (authoritative, independent of iTunes).
+  const iosVer = (await env.SCRATCHPAD.get('dashboard-ios-versions', 'json')) || {};
   const byAppleId = Object.fromEntries(rows.filter(r => r.iosTrackId).map(r => [String(r.iosTrackId), r]));
+  for (const [pkg, t] of Object.entries(iosVer.apps || {})) {
+    const r = rowByPkg[pkg];
+    if (r && t && t.appleId && !byAppleId[String(t.appleId)]) byAppleId[String(t.appleId)] = r;
+  }
   let iosReport = 'disabled';
   if (env.ASC_SALES_KEY && env.ASC_KEY_ID && env.ASC_ISSUER_ID && env.ASC_VENDOR) {
     try {
@@ -563,7 +575,7 @@ async function refresh(env) {
   // dashboard-ios-versions KV), which flips to "live" the moment an app is
   // released; the iTunes lookup (onAppStore) lags hours behind a fresh release
   // and undercounts, so it's only a fallback when that KV is unavailable.
-  const iosVer = (await env.SCRATCHPAD.get('dashboard-ios-versions', 'json')) || {};
+  // (iosVer was loaded above, before the ASC sales mapping.)
   // "Live" = any version READY_FOR_SALE (the `live` flag), NOT production.state:
   // production tracks the newest in-flight version, so the moment an update is
   // submitted its state flips to "waiting review" while the app is still on
