@@ -1,0 +1,4 @@
+# The build dashboard moved to the Access landing page (Jun 2026):
+# /scratchpad/ = dashboard, /scratchpad/notes/ = the scratchpad pad.
+/scratchpad/dashboard/ /scratchpad/ 301
+/scratchpad/dashboard /scratchpad/ 301

@@ -5,7 +5,7 @@
 //      `node SEDX-site/collect-dashboard.js --emit-config`)
 //   2. for each app, query the Google Play Developer API for live track status,
 //      authed with the single shared service account (Worker secret GOOGLE_SA_KEY)
-//   3. write the snapshot to KV "dashboard", read by /scratchpad/dashboard/
+//   3. write the snapshot to KV "dashboard", read by /scratchpad/
 //
 // KV is reached via the SCRATCHPAD binding (no Cloudflare token needed here).
 // The gated Pages Function /scratchpad/dashboard-data serves what we write.

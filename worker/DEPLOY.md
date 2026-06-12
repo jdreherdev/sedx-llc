@@ -3,7 +3,7 @@
 This Worker refreshes the build dashboard every 6 hours with no laptop involved.
 It reads the app list from KV (`dashboard-config`, written by the laptop), queries
 Google Play for each app, and writes the `dashboard` KV key that the gated page at
-https://sedx.llc/scratchpad/dashboard/ reads.
+https://sedx.llc/scratchpad/ reads.
 
 It's deployed **separately** from the Pages site (the Pages build ignores this
 subdir). One-time setup below; after that it runs on Cloudflare's schedule.
