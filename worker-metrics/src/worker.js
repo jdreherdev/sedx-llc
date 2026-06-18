@@ -162,7 +162,7 @@ function parseAscSales(tsv) {
   const lines = tsv.trim().split('\n');
   if (lines.length < 2) return [];
   const h = lines[0].split('\t');
-  const ix = { units: h.indexOf('Units'), proceeds: h.indexOf('Developer Proceeds'), id: h.indexOf('Apple Identifier'), cur: h.indexOf('Currency of Proceeds') };
+  const ix = { units: h.indexOf('Units'), proceeds: h.indexOf('Developer Proceeds'), id: h.indexOf('Apple Identifier'), parent: h.indexOf('Parent Identifier'), cur: h.indexOf('Currency of Proceeds') };
   if (ix.id < 0 || ix.units < 0) return [];
   const out = [];
   for (let i = 1; i < lines.length; i++) {
@@ -171,7 +171,10 @@ function parseAscSales(tsv) {
     const units = parseInt(c[ix.units], 10) || 0;
     const per = ix.proceeds >= 0 ? parseFloat(c[ix.proceeds]) || 0 : 0;
     const usd = ix.cur < 0 || c[ix.cur] === 'USD';
-    out.push({ appleId: c[ix.id], units, proceedsUSD: usd ? Math.round(per * units * 100) / 100 : 0 });
+    // IAP/subscription rows carry the product's own Apple id and name the parent
+    // app via "Parent Identifier" (the app's SKU). App-level rows leave it blank.
+    const parentId = ix.parent >= 0 ? (c[ix.parent] || '').trim() : '';
+    out.push({ appleId: c[ix.id], parentId, units, proceedsUSD: usd ? Math.round(per * units * 100) / 100 : 0 });
   }
   return out;
 }
@@ -494,7 +497,20 @@ async function refresh(env) {
     const r = rowByPkg[pkg];
     if (r && t && t.appleId && !byAppleId[String(t.appleId)]) byAppleId[String(t.appleId)] = r;
   }
+  // The "Parent Identifier" on an IAP/subscription sales row is the parent app's
+  // SKU (= its iOS bundleId across this suite). Map bundleId -> the app's numeric
+  // Apple id so IAP proceeds attribute to the app, not the IAP product's own id
+  // (which is not an app and matches no row -> revenue would silently vanish).
+  const bundleByPkg = Object.fromEntries(apps.filter(a => a.iosBundleId).map(a => [a.androidPackage, a.iosBundleId]));
+  const appleIdByBundle = {};
+  for (const r of rows) {
+    const b = bundleByPkg[r.androidPackage];
+    if (!b) continue;
+    const id = iosVer.apps?.[r.androidPackage]?.appleId || r.iosTrackId;
+    if (id) appleIdByBundle[b] = String(id);
+  }
   let iosReport = 'disabled';
+  const iapProductIds = new Set(); // Apple ids seen as IAP/sub products, not apps
   if (env.ASC_SALES_KEY && env.ASC_KEY_ID && env.ASC_ISSUER_ID && env.ASC_VENDOR) {
     try {
       const tok = await ascToken(env);
@@ -507,15 +523,30 @@ async function refresh(env) {
         subreq++;
         if (!dayRows.length) continue;
         got++;
+        // Aggregate the day per owning app before writing: an app can have many
+        // rows (download tiers, multiple IAPs, refunds) and they must SUM, not
+        // overwrite. IAP/sub rows (Parent Identifier set) belong to the parent
+        // app; their units are purchases, not installs, so they don't count as
+        // downloads — only app-level rows do.
+        const dayUnits = {}, dayRev = {};
         for (const dr of dayRows) {
-          const slot = (life.ios[dr.appleId] ||= { byDate: {}, revByDate: {} });
-          slot.byDate[day] = dr.units;
-          slot.revByDate[day] = dr.proceedsUSD;
+          const isIap = !!dr.parentId;
+          if (isIap) iapProductIds.add(String(dr.appleId));
+          const owner = isIap ? appleIdByBundle[dr.parentId] : String(dr.appleId);
+          if (!owner) continue; // IAP whose parent app isn't in the roster — skip
+          dayRev[owner] = (dayRev[owner] || 0) + dr.proceedsUSD;
+          if (!isIap) dayUnits[owner] = (dayUnits[owner] || 0) + dr.units;
         }
+        for (const [owner, v] of Object.entries(dayUnits)) (life.ios[owner] ||= { byDate: {}, revByDate: {} }).byDate[day] = v;
+        for (const [owner, v] of Object.entries(dayRev)) (life.ios[owner] ||= { byDate: {}, revByDate: {} }).revByDate[day] = Math.round(v * 100) / 100;
       }
       iosReport = `${got} day(s) with data`;
     } catch (e) { iosReport = `error: ${String(e.message || e)}`; }
   }
+  // Purge any IAP/subscription product ids that earlier (buggy) runs stored as if
+  // they were apps — their proceeds now live under the parent app's id, so
+  // leaving them would double-count in the cross-app daily series.
+  for (const id of iapProductIds) delete life.ios[id];
   // iOS per-app totals + per-day series (across apps) from the lifetime store.
   const iosDlByDay = {}, iosRevByDay = {};
   for (const [appleId, slot] of Object.entries(life.ios)) {
