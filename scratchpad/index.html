@@ -217,6 +217,30 @@
       <tbody id="ai-rows"></tbody>
     </table>
   </div>
+
+  <h2 class="ai-title">RevenueCat actions <span class="ai-sub" id="rc-meta"></span></h2>
+  <div class="tablewrap">
+    <table class="ai-table">
+      <thead><tr><th>App</th><th class="num">Open</th><th class="num">Done</th><th>Items</th></tr></thead>
+      <tbody id="rc-rows"></tbody>
+    </table>
+  </div>
+
+  <h2 class="ai-title">Play Console actions <span class="ai-sub" id="play-meta"></span></h2>
+  <div class="tablewrap">
+    <table class="ai-table">
+      <thead><tr><th>App</th><th class="num">Open</th><th class="num">Done</th><th>Items</th></tr></thead>
+      <tbody id="play-rows"></tbody>
+    </table>
+  </div>
+
+  <h2 class="ai-title">App Store Connect actions <span class="ai-sub" id="asc-meta"></span></h2>
+  <div class="tablewrap">
+    <table class="ai-table">
+      <thead><tr><th>App</th><th class="num">Open</th><th class="num">Done</th><th>Items</th></tr></thead>
+      <tbody id="asc-rows"></tbody>
+    </table>
+  </div>
 </div>
 
 <script>
@@ -581,29 +605,36 @@ async function rebuild() {
 }
 
 // Action-item backlog (canonical source = the cross-session Claude memory
-// checklist; mirrored to KV by SEDX-site/sync-action-items.mjs).
+// checklist; mirrored to KV by SEDX-site/sync-action-items.mjs). One fetch
+// feeds the general backlog plus the RevenueCat / Play Console / ASC boards.
+function renderBoard(rowsEl, metaEl, board, updatedAt) {
+  const groups = (board && board.groups) || [];
+  const t = (board && board.totals) || { open: 0, done: 0 };
+  if (metaEl) metaEl.textContent = `${t.open} open · ${t.done} done` + (updatedAt ? ` · updated ${fmtAgo(updatedAt)}` : '');
+  // Most open items first, then by name; fully-done groups sink to the bottom.
+  groups.sort((a, b) => (b.open - a.open) || String(a.app).localeCompare(b.app));
+  rowsEl.innerHTML = groups.map(g => {
+    const todo = (g.todo || []).map(x => `<li class="ai-todo">${esc(x)}</li>`).join('');
+    const done = (g.doneItems || []).map(x => `<li class="ai-done">${esc(x)}</li>`).join('');
+    const cls = g.open === 0 ? ' class="ai-clear"' : '';
+    const note = g.note ? ` <span class="ai-note">${esc(g.note)}</span>` : '';
+    return `<tr${cls}><td><b>${esc(g.app)}</b>${note}</td>` +
+      `<td class="num">${g.open || 0}</td><td class="num">${g.done || 0}</td>` +
+      `<td><ul class="ai-list">${todo}${done}</ul></td></tr>`;
+  }).join('') || '<tr><td colspan="4" class="ai-note">No items.</td></tr>';
+}
+
 async function loadActionItems() {
   const meta = document.getElementById('ai-meta');
-  const rows = document.getElementById('ai-rows');
   try {
     const res = await fetch('/scratchpad/action-items');
     if (!res.ok) throw new Error('HTTP ' + res.status);
     const doc = await res.json();
-    const groups = doc.groups || [];
-    const t = doc.totals || { open: 0, done: 0 };
-    meta.textContent = `${t.open} open · ${t.done} done · updated ${fmtAgo(doc.updatedAt)}`;
-    // Most open items first, then by name; fully-done groups sink to the bottom.
-    groups.sort((a, b) => (b.open - a.open) || String(a.app).localeCompare(b.app));
-    rows.innerHTML = groups.map(g => {
-      const todo = (g.todo || []).map(x => `<li class="ai-todo">${esc(x)}</li>`).join('');
-      const done = (g.doneItems || []).map(x => `<li class="ai-done">${esc(x)}</li>`).join('');
-      const cls = g.open === 0 ? ' class="ai-clear"' : '';
-      const note = g.note ? ` <span class="ai-note">${esc(g.note)}</span>` : '';
-      return `<tr${cls}><td><b>${esc(g.app)}</b>${note}</td>` +
-        `<td class="num">${g.open || 0}</td><td class="num">${g.done || 0}</td>` +
-        `<td><ul class="ai-list">${todo}${done}</ul></td></tr>`;
-    }).join('');
-    if (!groups.length) rows.innerHTML = '<tr><td colspan="4">No action items — run sync-action-items.mjs.</td></tr>';
+    const b = doc.boards || {};
+    renderBoard(document.getElementById('ai-rows'), meta, { groups: doc.groups, totals: doc.totals }, doc.updatedAt);
+    renderBoard(document.getElementById('rc-rows'), document.getElementById('rc-meta'), b.rc, doc.updatedAt);
+    renderBoard(document.getElementById('play-rows'), document.getElementById('play-meta'), b.play, doc.updatedAt);
+    renderBoard(document.getElementById('asc-rows'), document.getElementById('asc-meta'), b.asc, doc.updatedAt);
   } catch (e) {
     meta.textContent = 'Failed to load action items: ' + e.message;
   }
