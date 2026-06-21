@@ -1,0 +1,535 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Development Pipeline — SEDX, LLC</title>
+<link rel="icon" href="/favicon.ico" sizes="any">
+<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
+<link rel="icon" type="image/png" sizes="192x192" href="/favicon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<style>
+  :root {
+    --bg: #0A0A0A;
+    --bg-card: #14130F;
+    --bg-card2: #1A1814;
+    --bg-row-hover: #1A1814;
+    --border: #2A2620;
+    --border-soft: #221F1A;
+    --text: #E8DCC0;
+    --text-dim: #9C9079;
+    --gold: #C9A24A;
+    --gold-hover: #E0B45A;
+    --muted: #5A5448;
+    --danger: #C44;
+    --ok: #6FA86F;
+    --ios: #5B9BD5;
+    /* lifecycle stage accents, concept → maintain */
+    --s-concept:  #8E7CC3;
+    --s-scaffold: #9B7BB5;
+    --s-build:    #6B8FB5;
+    --s-testing:  #5B9BD5;
+    --s-review:   #C9A24A;
+    --s-live:     #6FA86F;
+    --s-maintain: #4F8A6A;
+    /* app-kind accents (card left border) */
+    --k-reference: #C9A24A;
+    --k-utility:   #5B9BD5;
+    --k-nature:    #6FA86F;
+    --k-game:      #C97BB5;
+    --k-web:       #9C9079;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: var(--bg); color: var(--text); }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+    line-height: 1.5; min-height: 100vh;
+  }
+  a { color: inherit; }
+  .wrap { max-width: 1400px; margin: 0 auto; padding: 40px 24px 110px; }
+  .crumb { display: inline-block; color: var(--text-dim); font-size: 13px; text-decoration: none; margin-bottom: 24px; }
+  .crumb:hover { color: var(--gold); }
+
+  .head { display: flex; align-items: baseline; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 6px; }
+  h1 { font-size: 26px; margin: 0; font-weight: 600; letter-spacing: -0.3px; }
+  .lede { color: var(--text-dim); font-size: 14px; max-width: 720px; margin: 0 0 4px; }
+  .meta { color: var(--muted); font-size: 12px; }
+
+  /* ---- lifecycle definition (the standard process) ---- */
+  .proc-head { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin: 34px 0 14px; }
+  .proc-head h2 { font-size: 17px; margin: 0; font-weight: 600; letter-spacing: -0.2px; }
+  .toggle-defs { background: transparent; border: 1px solid var(--border); color: var(--text-dim);
+    font-size: 12px; padding: 5px 12px; border-radius: 8px; cursor: pointer; }
+  .toggle-defs:hover { border-color: var(--gold); color: var(--gold); }
+
+  .flow { display: grid; grid-template-columns: repeat(7, 1fr); gap: 10px; }
+  @media (max-width: 1100px) { .flow { grid-template-columns: repeat(2, 1fr); } }
+  @media (max-width: 560px)  { .flow { grid-template-columns: 1fr; } }
+  .stagecard {
+    background: var(--bg-card); border: 1px solid var(--border); border-top: 3px solid var(--accent, var(--gold));
+    border-radius: 10px; padding: 12px 13px 14px;
+  }
+  .stagecard .sn { font-size: 10px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .stagecard h3 { margin: 2px 0 6px; font-size: 14px; font-weight: 600; color: var(--accent, var(--text)); }
+  .stagecard p { margin: 0 0 8px; font-size: 12px; color: var(--text-dim); line-height: 1.45; }
+  .stagecard .crit { font-size: 11px; color: var(--text-dim); margin: 6px 0 0; }
+  .stagecard .crit b { color: var(--text); font-weight: 600; }
+  .stagecard ul { margin: 4px 0 0; padding-left: 15px; }
+  .stagecard li { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+  .stagecard .bp { margin-top: 8px; font-size: 10px; letter-spacing: 0.4px; text-transform: uppercase; color: var(--muted); font-weight: 700; }
+  .defs-collapsed .stagecard .crit,
+  .defs-collapsed .stagecard .bp,
+  .defs-collapsed .stagecard ul,
+  .defs-collapsed .stagecard p { display: none; }
+
+  /* ---- controls bar ---- */
+  .controls { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; margin: 34px 0 16px; }
+  .seg { display: inline-flex; border: 1px solid var(--border); border-radius: 8px; overflow: hidden; }
+  .seg button { background: transparent; border: none; color: var(--text-dim); font-size: 13px;
+    padding: 7px 16px; cursor: pointer; }
+  .seg button.active { background: var(--bg-card2); color: var(--gold); }
+  .seg button + button { border-left: 1px solid var(--border); }
+  .search { background: var(--bg-card); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-size: 13px; padding: 7px 12px; min-width: 200px; }
+  .search::placeholder { color: var(--muted); }
+  .kinds { display: flex; gap: 7px; flex-wrap: wrap; }
+  .kchip { font-size: 11px; color: var(--text-dim); border: 1px solid var(--border); border-radius: 999px;
+    padding: 4px 11px; cursor: pointer; user-select: none; display: inline-flex; align-items: center; gap: 6px; }
+  .kchip .dot { width: 8px; height: 8px; border-radius: 2px; display: inline-block; }
+  .kchip.off { opacity: 0.4; }
+  .kchip:hover { border-color: var(--gold); }
+  .spacer { flex: 1; }
+  .stat { color: var(--text-dim); font-size: 12px; }
+  .stat b { color: var(--text); }
+
+  /* ---- kanban board ---- */
+  .board { display: grid; grid-template-columns: repeat(7, minmax(0,1fr)); gap: 12px; align-items: start; }
+  @media (max-width: 1100px) { .board { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 240px;
+    overflow-x: auto; padding-bottom: 12px; } }
+  .col { background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 12px; padding: 10px 10px 12px; }
+  .col-h { display: flex; align-items: center; gap: 7px; padding: 2px 4px 10px; border-bottom: 1px solid var(--border-soft); margin-bottom: 10px; }
+  .col-h .bar { width: 4px; height: 16px; border-radius: 2px; background: var(--accent); }
+  .col-h .t { font-size: 12px; font-weight: 700; letter-spacing: 0.3px; text-transform: uppercase; color: var(--text); }
+  .col-h .c { margin-left: auto; font-size: 11px; color: var(--text-dim); background: var(--bg-card2);
+    border-radius: 999px; padding: 1px 8px; font-variant-numeric: tabular-nums; }
+  .col-body { display: flex; flex-direction: column; gap: 8px; min-height: 24px; }
+  .col-empty { color: var(--muted); font-size: 11px; font-style: italic; padding: 8px 4px; }
+
+  .card { background: var(--bg-card2); border: 1px solid var(--border); border-left: 3px solid var(--kind, var(--gold));
+    border-radius: 8px; padding: 9px 10px; cursor: pointer; transition: border-color .12s; }
+  .card:hover { border-color: var(--gold); }
+  .card .cn { font-size: 13px; font-weight: 600; color: var(--text); display: flex; align-items: center; gap: 6px; }
+  .card .ver { font-size: 11px; color: var(--text-dim); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+  .card .badges { display: flex; gap: 6px; margin-top: 5px; flex-wrap: wrap; }
+  .pill { font-size: 10px; border-radius: 999px; padding: 1px 7px; border: 1px solid var(--border); color: var(--text-dim); }
+  .pill.open { color: var(--gold); border-color: rgba(201,162,74,.4); }
+  .pill.clear { color: var(--ok); border-color: rgba(111,168,111,.4); }
+  .pill.store { color: var(--ok); border-color: rgba(111,168,111,.35); }
+  .pill.store.review { color: var(--ios); border-color: rgba(91,155,213,.35); }
+  .pill.store.bad { color: var(--danger); border-color: rgba(204,68,68,.4); }
+  .card .next { margin: 8px 0 0; padding: 8px 0 0; border-top: 1px solid var(--border); display: none; }
+  .card.open-card .next { display: block; }
+  .card .next .lbl { font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 3px; }
+  .card .next ul { margin: 0 0 6px; padding-left: 15px; }
+  .card .next li { font-size: 11.5px; line-height: 1.5; }
+  .card .next li.todo { color: var(--text); }
+  .card .next li.done { color: var(--muted); text-decoration: line-through; }
+  .card .next .none { font-size: 11px; color: var(--muted); font-style: italic; }
+  .card .note { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 6px; }
+
+  /* ---- progress / roadmap view ---- */
+  .road { display: none; flex-direction: column; gap: 6px; }
+  .road.active { display: flex; }
+  .board.active { display: grid; }
+  .board, .road { }
+  .roadrow { background: var(--bg-card); border: 1px solid var(--border-soft); border-radius: 10px;
+    padding: 10px 12px; cursor: pointer; }
+  .roadrow:hover { border-color: var(--border); }
+  .roadrow .top { display: flex; align-items: center; gap: 10px; }
+  .roadrow .nm { font-size: 13px; font-weight: 600; color: var(--text); min-width: 150px; display: flex; align-items: center; gap: 7px; }
+  .roadrow .stagelabel { font-size: 11px; color: var(--accent); font-weight: 600; min-width: 110px; }
+  .roadrow .segs { display: flex; gap: 3px; flex: 1; }
+  .roadrow .segc { flex: 1; height: 8px; border-radius: 2px; background: var(--border-soft); }
+  .roadrow .segc.done { background: var(--accent); }
+  .roadrow .segc.cur { background: var(--accent); box-shadow: 0 0 0 2px rgba(201,162,74,.25); }
+  .roadrow .rt { font-size: 11px; color: var(--text-dim); min-width: 64px; text-align: right; font-variant-numeric: tabular-nums; }
+  .roadrow .rt b { color: var(--gold); }
+  .roadrow .rdetail { display: none; margin-top: 9px; padding-top: 9px; border-top: 1px solid var(--border-soft); }
+  .roadrow.open-card .rdetail { display: block; }
+  .roadrow .rdetail .lbl { font-size: 9px; letter-spacing: 0.5px; text-transform: uppercase; color: var(--muted); font-weight: 700; margin-bottom: 3px; }
+  .roadrow .rdetail ul { margin: 0; padding-left: 16px; }
+  .roadrow .rdetail li { font-size: 11.5px; line-height: 1.5; }
+  .roadrow .rdetail li.todo { color: var(--text); }
+  .roadrow .rdetail li.done { color: var(--muted); text-decoration: line-through; }
+  @media (max-width: 720px) {
+    .roadrow .top { flex-wrap: wrap; }
+    .roadrow .segs { order: 3; flex-basis: 100%; }
+  }
+
+  .kdot { width: 7px; height: 7px; border-radius: 2px; display: inline-block; flex: none; }
+  .loading, .errbox { color: var(--text-dim); font-size: 13px; padding: 40px 0; text-align: center; }
+  .errbox { color: var(--danger); }
+  .foot { margin-top: 40px; font-size: 11.5px; color: var(--muted); line-height: 1.6; border-top: 1px solid var(--border-soft); padding-top: 16px; }
+  .foot code { background: var(--bg-card); border: 1px solid var(--border); border-radius: 4px; padding: 1px 5px; font-size: 11px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <a class="crumb" href="/scratchpad/">&larr; Build Dashboard</a>
+  <a class="crumb" href="/scratchpad/notes/" style="float:right">Scratchpad &rarr;</a>
+
+  <div class="head">
+    <h1>Development Pipeline</h1>
+    <div class="meta" id="meta">Loading…</div>
+  </div>
+  <p class="lede">The standard lifecycle every SEDX app moves through, and where each one sits today.
+    Next-steps are live from the canonical action-item backlog; stage placement is curated.</p>
+
+  <!-- ===== lifecycle definition ===== -->
+  <div class="proc-head">
+    <h2>The standard lifecycle</h2>
+    <button class="toggle-defs" id="toggle-defs">Hide details</button>
+  </div>
+  <div class="flow" id="flow"></div>
+
+  <!-- ===== controls ===== -->
+  <div class="controls">
+    <div class="seg" id="viewseg">
+      <button data-view="board" class="active">Board</button>
+      <button data-view="road">Progress</button>
+    </div>
+    <input class="search" id="search" type="search" placeholder="Filter apps…" autocomplete="off">
+    <div class="kinds" id="kinds"></div>
+    <span class="spacer"></span>
+    <span class="stat" id="stat"></span>
+  </div>
+
+  <!-- ===== views ===== -->
+  <div class="board active" id="board"></div>
+  <div class="road" id="road"></div>
+
+  <div class="foot" id="foot"></div>
+</div>
+
+<script>
+const esc = s => String(s == null ? '' : s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const norm = s => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '');
+function fmtAgo(iso) {
+  if (!iso) return 'never';
+  const mins = Math.round((Date.now() - new Date(iso)) / 60000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return mins + ' min ago';
+  const hrs = Math.round(mins / 60);
+  if (hrs < 24) return hrs + ' hr ago';
+  return Math.round(hrs / 24) + ' day(s) ago';
+}
+
+// ---- the lifecycle definition (the documented standard process) -----------
+const STAGES = [
+  { key: 'concept', name: 'Concept', accent: 'var(--s-concept)',
+    purpose: 'Validate the idea and the wedge before any code. Name it, reserve the bundle id, decide how it earns.',
+    entry: 'A named opportunity / underserved niche.',
+    exit: 'Go/no-go made; name + com.rltw.* id chosen; monetization decided.',
+    bp: ['Write the one-line honest-pricing wedge vs. the incumbent.',
+         'Confirm a real underserved niche, not a crowded category.',
+         'Pick free / tip-jar / one-time / freemium up front.'] },
+  { key: 'scaffold', name: 'Scaffold', accent: 'var(--s-scaffold)',
+    purpose: 'Clone the closest template app and make it yours: branding, navigation, billing wiring, first green build.',
+    entry: 'Go decision + chosen template.',
+    exit: 'Rebranded app builds locally and launches on a device.',
+    bp: ['Static runtimeVersion string (never fingerprint/appVersion).',
+         'RC entitlement id must equal the dashboard id.',
+         'com.rltw.<app> for package + bundle id; commit the initial state.'] },
+  { key: 'build', name: 'Build', accent: 'var(--s-build)',
+    purpose: 'Implement core features and iterate on device. Pull in the shared modules instead of reinventing them.',
+    entry: 'Scaffold builds & runs.',
+    exit: 'Feature-complete for v1; clean production build.',
+    bp: ['Verify on all 4 standard devices incl. a tablet.',
+         'Reuse shared paywall / review-prompt / lock-imagery patterns.',
+         'Apply the reanimated/worklets patch for prod builds.'] },
+  { key: 'testing', name: 'Internal Testing', accent: 'var(--s-testing)',
+    purpose: 'Ship to Play internal / TestFlight. Prepare the store listing and run a real QA pass.',
+    entry: 'A signed build exists.',
+    exit: 'Listing text + phone & tablet screenshots done; QA clean.',
+    bp: ['Capture tablet screenshots — iPad overflow has caused rejections.',
+         'Add the hidden RLTW-REVIEW reviewer unlock for paywalled apps.',
+         'Drop unused permissions (e.g. READ_MEDIA_IMAGES).'] },
+  { key: 'review', name: 'Store Review', accent: 'var(--s-review)',
+    purpose: 'Submit to Play production and the App Store. Handle rejections and IAP review screenshots.',
+    entry: 'Listing complete; build promoted.',
+    exit: 'Approved + rolling out on the target store(s).',
+    bp: ['Click "Send for review" after an API promote — it stays pending otherwise.',
+         'A new-app listing 404 during review is normal, not a failure.',
+         'Smoke-launch the iOS .app — blank launch = guaranteed rejection.'] },
+  { key: 'live', name: 'Live', accent: 'var(--s-live)',
+    purpose: 'Published to production on at least one store. Watch the numbers on the build dashboard.',
+    entry: 'Approved release on ≥1 store.',
+    exit: 'Stable for several releases with no launch blockers.',
+    bp: ['Wire the shared in-app review prompt.',
+         'Monitor ratings / installs / revenue; act on crashes fast.',
+         'Use EAS Update OTA where the asset count allows it.'] },
+  { key: 'maintain', name: 'Maintain', accent: 'var(--s-maintain)',
+    purpose: 'Stable and earning. Iterate on features and keep parity across the suite.',
+    entry: 'Live & stable.',
+    exit: 'Ongoing (or sunset).',
+    bp: ['When a bug lands in one app, grep siblings for the same pattern.',
+         'Bundle several visible features per release, not one micro-fix.'] },
+];
+const STAGE_IDX = Object.fromEntries(STAGES.map((s, i) => [s.key, i]));
+
+// ---- app kinds (left-border color) ----------------------------------------
+const KINDS = {
+  reference: { label: 'Reference', color: 'var(--k-reference)' },
+  utility:   { label: 'Utility',   color: 'var(--k-utility)' },
+  nature:    { label: 'Nature/ID', color: 'var(--k-nature)' },
+  game:      { label: 'Game',      color: 'var(--k-game)' },
+  web:       { label: 'Web/Backend', color: 'var(--k-web)' },
+};
+
+// ---- curated placement: app -> { stage, kind } ----------------------------
+// Keyed by normalized action-item app name (see norm()). Stage is the curated
+// truth; everything else (version, next-steps, store status) is live. Update an
+// entry when an app advances a stage, then it re-renders on next load.
+const PLACEMENT = {
+  rangerhandbook:      { stage: 'live',     kind: 'reference' },
+  buglenotescadet:     { stage: 'live',     kind: 'reference' },
+  mutcd:               { stage: 'maintain', kind: 'reference' },
+  counted:             { stage: 'live',     kind: 'utility' },
+  videotimer:          { stage: 'live',     kind: 'utility' },
+  fmlibrary:           { stage: 'review',   kind: 'reference' },
+  armybranchhandbooks: { stage: 'live',     kind: 'reference' },
+  combatmedic:         { stage: 'live',     kind: 'reference' },
+  icsfieldguide:       { stage: 'live',     kind: 'reference' },
+  abrahamicapp:        { stage: 'live',     kind: 'reference' },
+  sorted:              { stage: 'live',     kind: 'utility' },
+  canieatit:           { stage: 'testing',  kind: 'nature' },
+  trailready:          { stage: 'build',    kind: 'nature' },
+  wildside:            { stage: 'review',   kind: 'nature' },
+  coxswainhq:          { stage: 'review',   kind: 'utility' },
+  mathsprout:          { stage: 'testing',  kind: 'utility' },
+  helicopterpilot:     { stage: 'live',     kind: 'utility' },
+  robertsrules:        { stage: 'live',     kind: 'reference' },
+  pdfkit:              { stage: 'build',    kind: 'utility' },
+  drift:               { stage: 'testing',  kind: 'utility' },
+  scanly:              { stage: 'testing',  kind: 'utility' },
+  settled:             { stage: 'testing',  kind: 'utility' },
+  leafy:               { stage: 'build',    kind: 'nature' },
+  noorsiraj:           { stage: 'scaffold', kind: 'reference' },
+  kioskhq:             { stage: 'testing',  kind: 'utility' },
+  apogee:              { stage: 'testing',  kind: 'utility' },
+  cutinhalf:           { stage: 'maintain', kind: 'game' },
+  sidelinehq:          { stage: 'maintain', kind: 'web' },
+  trackhq:             { stage: 'build',    kind: 'web' },
+};
+
+// Fallback stage inference from the action-item note, for apps not in PLACEMENT.
+function inferStage(note) {
+  const n = (note || '').toLowerCase();
+  if (/scaffold/.test(n)) return 'scaffold';
+  if (/submitted|waiting review|in review/.test(n)) return 'review';
+  if (/no blocker|maintain/.test(n)) return 'maintain';
+  if (/internal/.test(n)) return 'testing';
+  if (/published|shipped|live/.test(n)) return 'live';
+  if (/early|new|first|dev|scaffolded/.test(n)) return 'build';
+  return 'build';
+}
+
+// state ------------------------------------------------------------------
+let APPS = [];                 // merged app objects
+let view = 'board';
+const kindOff = new Set();     // kinds toggled off
+let query = '';
+
+function placementFor(app) {
+  const p = PLACEMENT[norm(app)];
+  if (p) return p;
+  return { stage: null, kind: 'utility' };
+}
+
+// Merge action-items groups (the live backlog) with the dashboard snapshot.
+function buildApps(ai, dash) {
+  const dashByName = {};
+  (dash?.apps || []).forEach(a => {
+    dashByName[norm(a.displayName)] = a;
+    if (a.androidPackage) dashByName[norm(a.androidPackage.split('.').pop())] = a;
+  });
+
+  return (ai?.groups || []).map(g => {
+    const p = placementFor(g.app);
+    const stage = p.stage || inferStage(g.note);
+    const verMatch = (g.note || '').match(/v?\d+\.\d+(\.\d+)?/);
+    const d = dashByName[norm(g.app)];
+    // store liveness for a small status pill
+    let store = null;
+    if (d) {
+      if (d.tracks?.production && d.playLive !== false) store = { cls: 'store', label: 'Live on Play' };
+      else if (d.tracks?.production && d.playLive === false) store = { cls: 'store review', label: 'Play in review' };
+      const ios = d.iosTracks?.production;
+      if (ios?.state && /reject/i.test(ios.state)) store = { cls: 'store bad', label: 'iOS rejected' };
+    }
+    return {
+      name: g.app, note: g.note || '', stage, kind: p.kind,
+      open: g.open || 0, done: g.done || 0,
+      todo: g.todo || [], doneItems: g.doneItems || [],
+      version: verMatch ? verMatch[0] : '', store,
+    };
+  });
+}
+
+function visible(a) {
+  if (kindOff.has(a.kind)) return false;
+  if (query && !(`${a.name} ${a.note}`.toLowerCase().includes(query))) return false;
+  return true;
+}
+
+// ---- renderers ---------------------------------------------------------
+function renderFlow() {
+  document.getElementById('flow').innerHTML = STAGES.map((s, i) => `
+    <div class="stagecard" style="--accent:${s.accent}">
+      <div class="sn">Stage ${i + 1}</div>
+      <h3>${esc(s.name)}</h3>
+      <p>${esc(s.purpose)}</p>
+      <div class="crit"><b>Enter:</b> ${esc(s.entry)}</div>
+      <div class="crit"><b>Exit:</b> ${esc(s.exit)}</div>
+      <div class="bp">Best practices</div>
+      <ul>${s.bp.map(b => `<li>${esc(b)}</li>`).join('')}</ul>
+    </div>`).join('');
+}
+
+function renderKinds() {
+  document.getElementById('kinds').innerHTML = Object.entries(KINDS).map(([k, v]) =>
+    `<span class="kchip ${kindOff.has(k) ? 'off' : ''}" data-kind="${k}">
+       <span class="dot" style="background:${v.color}"></span>${esc(v.label)}</span>`).join('');
+}
+
+function nextHtml(a) {
+  const todo = a.todo.map(x => `<li class="todo">${esc(x)}</li>`).join('');
+  const done = a.doneItems.slice(0, 4).map(x => `<li class="done">${esc(x)}</li>`).join('');
+  if (!todo && !done) return `<div class="none">No tracked items.</div>`;
+  return (todo ? `<div class="lbl">Next steps</div><ul>${todo}</ul>` : `<div class="none">No open items — clear.</div>`) +
+         (done ? `<div class="lbl">Recently done</div><ul>${done}</ul>` : '');
+}
+
+function cardHtml(a) {
+  const openPill = a.open
+    ? `<span class="pill open">${a.open} next step${a.open > 1 ? 's' : ''}</span>`
+    : `<span class="pill clear">clear</span>`;
+  const storePill = a.store ? `<span class="pill ${a.store.cls}">${esc(a.store.label)}</span>` : '';
+  return `<div class="card" data-app="${esc(norm(a.name))}" style="--kind:${KINDS[a.kind].color}">
+    <div class="cn"><span class="kdot" style="background:${KINDS[a.kind].color}"></span>${esc(a.name)}
+      ${a.version ? `<span class="ver">${esc(a.version)}</span>` : ''}</div>
+    <div class="badges">${openPill}${storePill}</div>
+    ${a.note ? `<div class="note">${esc(a.note)}</div>` : ''}
+    <div class="next">${nextHtml(a)}</div>
+  </div>`;
+}
+
+function renderBoard() {
+  const board = document.getElementById('board');
+  board.innerHTML = STAGES.map(s => {
+    const apps = APPS.filter(a => a.stage === s.key && visible(a))
+      .sort((a, b) => b.open - a.open || a.name.localeCompare(b.name));
+    const cards = apps.map(cardHtml).join('') || `<div class="col-empty">—</div>`;
+    return `<div class="col" style="--accent:${s.accent}">
+      <div class="col-h"><span class="bar"></span><span class="t">${esc(s.name)}</span>
+        <span class="c">${apps.length}</span></div>
+      <div class="col-body">${cards}</div>
+    </div>`;
+  }).join('');
+}
+
+function renderRoad() {
+  const road = document.getElementById('road');
+  const apps = APPS.filter(visible).slice().sort((a, b) =>
+    STAGE_IDX[b.stage] - STAGE_IDX[a.stage] || b.open - a.open || a.name.localeCompare(b.name));
+  road.innerHTML = apps.map(a => {
+    const idx = STAGE_IDX[a.stage];
+    const accent = STAGES[idx].accent;
+    const segs = STAGES.map((s, i) =>
+      `<span class="segc ${i < idx ? 'done' : ''}${i === idx ? 'cur' : ''}"></span>`).join('');
+    const rt = a.open ? `<b>${a.open}</b> open` : 'clear';
+    return `<div class="roadrow" data-app="${esc(norm(a.name))}" style="--accent:${accent}">
+      <div class="top">
+        <span class="nm"><span class="kdot" style="background:${KINDS[a.kind].color}"></span>${esc(a.name)}</span>
+        <span class="stagelabel">${esc(STAGES[idx].name)}</span>
+        <span class="segs">${segs}</span>
+        <span class="rt">${rt}</span>
+      </div>
+      <div class="rdetail">${nextHtml(a)}</div>
+    </div>`;
+  }).join('') || `<div class="col-empty">No apps match the filter.</div>`;
+}
+
+function renderStat() {
+  const vis = APPS.filter(visible);
+  const open = vis.reduce((s, a) => s + a.open, 0);
+  document.getElementById('stat').innerHTML =
+    `<b>${vis.length}</b> apps · <b>${open}</b> open next steps`;
+}
+
+function rerender() {
+  if (view === 'board') renderBoard(); else renderRoad();
+  renderStat();
+}
+
+// ---- events ------------------------------------------------------------
+document.getElementById('viewseg').addEventListener('click', e => {
+  const b = e.target.closest('button'); if (!b) return;
+  view = b.dataset.view;
+  document.querySelectorAll('#viewseg button').forEach(x => x.classList.toggle('active', x === b));
+  document.getElementById('board').classList.toggle('active', view === 'board');
+  document.getElementById('road').classList.toggle('active', view === 'road');
+  rerender();
+});
+document.getElementById('kinds').addEventListener('click', e => {
+  const c = e.target.closest('.kchip'); if (!c) return;
+  const k = c.dataset.kind;
+  if (kindOff.has(k)) kindOff.delete(k); else kindOff.add(k);
+  c.classList.toggle('off');
+  rerender();
+});
+document.getElementById('search').addEventListener('input', e => { query = e.target.value.trim().toLowerCase(); rerender(); });
+document.getElementById('toggle-defs').addEventListener('click', e => {
+  const flow = document.getElementById('flow');
+  const collapsed = flow.classList.toggle('defs-collapsed');
+  e.target.textContent = collapsed ? 'Show details' : 'Hide details';
+});
+// expand a card / road row to reveal next-steps
+function bindExpand(id) {
+  document.getElementById(id).addEventListener('click', e => {
+    const el = e.target.closest('.card, .roadrow'); if (!el) return;
+    el.classList.toggle('open-card');
+  });
+}
+bindExpand('board'); bindExpand('road');
+
+// ---- load --------------------------------------------------------------
+async function load() {
+  renderFlow();
+  renderKinds();
+  try {
+    const [aiRes, dashRes] = await Promise.all([
+      fetch('/scratchpad/action-items', { cache: 'no-store' }),
+      fetch('/scratchpad/dashboard-data', { cache: 'no-store' }).catch(() => null),
+    ]);
+    if (!aiRes.ok) throw new Error('action-items HTTP ' + aiRes.status);
+    const ai = await aiRes.json();
+    const dash = dashRes && dashRes.ok ? await dashRes.json() : null;
+    APPS = buildApps(ai, dash);
+    document.getElementById('meta').textContent =
+      `${APPS.length} apps · backlog updated ${fmtAgo(ai.updatedAt)}`;
+    document.getElementById('foot').innerHTML =
+      `Stage placement is curated in this page (<code>PLACEMENT</code>); next-steps, versions and store status are live from ` +
+      `<code>app-action-items.md</code> &rarr; <code>/scratchpad/action-items</code> (run <code>node SEDX-site/sync-action-items.mjs</code> after editing the backlog). ` +
+      `Lifecycle definitions above are the documented SEDX standard process. Click any card or row for its next steps.`;
+    rerender();
+  } catch (e) {
+    document.getElementById('meta').textContent = 'Failed to load';
+    document.getElementById('board').innerHTML = `<div class="errbox">Failed to load: ${esc(e.message)}</div>`;
+  }
+}
+load();
+</script>
+</body>
+</html>
