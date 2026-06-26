@@ -9,66 +9,249 @@
   :root { --bg:#0B0E0C; --gold:#C9A24A; --goldB:#E5C062; --text:#E8E3D6; --muted:#9C957E; }
   * { box-sizing:border-box; }
   body { margin:0; background:#0B0E0C; color:#E8E3D6;
-    font-family:-apple-system,'Segoe UI',Roboto,'SF Arabic','Geeza Pro',sans-serif;
+    font-family:-apple-system,'Segoe UI',Roboto,'SF Arabic','Geeza Pro','Noto Sans Bengali','Noto Sans Arabic',sans-serif;
     line-height:1.65; }
-  .wrap { max-width:760px; margin:0 auto; padding:56px 22px 80px; }
-  .brand { display:flex; align-items:center; gap:14px; margin-bottom:6px; }
+  .wrap { max-width:760px; margin:0 auto; padding:40px 22px 80px; }
+  .brand { display:flex; align-items:center; gap:14px; margin-bottom:18px; }
   .brand .ar { color:#E5C062; font-size:40px; font-weight:800; direction:rtl; line-height:1; }
   .brand .en { color:#E8E3D6; font-size:22px; font-weight:700; letter-spacing:4px; }
-  h1 { color:#E5C062; font-size:30px; margin:26px 0 4px; }
+
+  /* language tabs */
+  .tabs { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 30px;
+    border-bottom:1px solid #2A2A22; padding-bottom:14px; }
+  .tabs button { background:transparent; color:#9C957E; border:1px solid #2A2A22;
+    border-radius:999px; padding:7px 14px; font-size:14px; cursor:pointer;
+    font-family:inherit; transition:all .15s ease; }
+  .tabs button:hover { color:#E8E3D6; border-color:#4A4636; }
+  .tabs button[aria-selected="true"] { color:#0B0E0C; background:#E5C062;
+    border-color:#E5C062; font-weight:700; }
+
+  h1 { color:#E5C062; font-size:30px; margin:6px 0 4px; }
   .eff { color:#9C957E; font-size:14px; margin:0 0 28px; }
   h2 { color:#E5C062; font-size:20px; margin:34px 0 8px; }
   p { margin:10px 0; color:#D9D3C4; }
   strong { color:#F0E9D6; }
-  a { color:#E5C062; }
   .lead { font-size:17px; color:#E8E3D6; }
   hr { border:none; border-top:1px solid #2A2A22; margin:30px 0; }
   footer { color:#7A7158; font-size:13px; margin-top:40px; }
+
+  [dir="rtl"] .brand { direction:rtl; }
+  [dir="rtl"] h1, [dir="rtl"] h2 { text-align:right; }
 </style>
 </head>
 <body>
 <div class="wrap">
   <div class="brand"><span class="ar">سِراج</span><span class="en">SIRAJ</span></div>
-  <h1>Privacy Policy</h1>
-  <p class="eff">Quran &amp; Prayer · Last updated 25 June 2026</p>
 
-  <p class="lead">Siraj is a privacy-first Islamic app. There is <strong>no account, no advertising, no analytics SDK, and no tracking of any kind</strong>. The Quran text, translation, transliteration, tafsir commentary, prayer-time calculation, Qibla direction, duas, Tasbih, the 99 Names, the Hijri calendar, and the memorization (Hifz) tools all run <strong>entirely offline on your device</strong>.</p>
+  <div class="tabs" id="tabs" role="tablist" aria-label="Language"></div>
 
-  <h2>What we collect</h2>
-  <p>Nothing about you is collected on a server, because we operate no server that receives your personal data. Siraj has no sign-in. The notes, bookmarks, highlights, memorization progress, and settings you create stay on your device and are removed when you uninstall the app.</p>
-
-  <h2>Location</h2>
-  <p><strong>Location</strong> (approximate, foreground-only) is requested for a single purpose: to calculate accurate prayer times and the Qibla direction for where you are. Your coordinates are used on your device and cached locally so the app keeps working offline; they are <strong>never uploaded to us or shared with anyone</strong>. Resolving a city name for display may use your device's operating-system geocoder.</p>
-
-  <h2>Notifications</h2>
-  <p><strong>Notifications</strong> are requested only if you keep adhan (prayer-time) alerts enabled. They are scheduled locally on the device with no network round-trip.</p>
-
-  <h2>Audio recitation (the only optional online feature)</h2>
-  <p>When you tap play on an ayah, the app streams that recitation from <strong>everyayah.com</strong>, a free public Quran-audio host; your request for that audio file goes to that host. No personal data is attached. All other content, including tafsir, is bundled in the app and needs no connection.</p>
-
-  <h2>The optional one-time "Study Tools" purchase</h2>
-  <p>Siraj is free, with <strong>no subscriptions and no ads</strong>. A single optional one-time purchase unlocks the Study Tools (verse-by-verse tafsir, every reciter, and offline audio downloads). Payment is processed by Google Play or the Apple App Store billing system, and we use <strong>RevenueCat</strong> to validate and remember the unlock. RevenueCat receives only an <strong>anonymous app-generated identifier</strong> and your entitlement (unlocked or not) — not your name, your location, or anything you read or memorize in the app.</p>
-
-  <h2>Permissions</h2>
-  <p>Siraj only requests a device permission when a feature you use requires it — location for prayer times and Qibla, and notifications for adhan alerts. Each is described above.</p>
-
-  <h2>Children's privacy</h2>
-  <p>Siraj is suitable for all ages and does not knowingly collect personal information from anyone, including children. There is no account and no user-generated content shared with others.</p>
-
-  <h2>Data security</h2>
-  <p>Because your data never leaves your device, its security depends on your device's own protections (screen lock, OS-level encryption). Any network requests Siraj makes (audio streaming, purchase validation) use HTTPS.</p>
-
-  <h2>Your choices</h2>
-  <p>You control everything locally: turn notifications or location off in your device settings at any time, and uninstall the app to remove all locally stored data. Because we hold no personal data on a server, there is nothing for us to delete on your behalf.</p>
-
-  <h2>Changes</h2>
-  <p>If this policy changes, the updated version will be posted at this address with a new "last updated" date.</p>
-
-  <h2>Contact</h2>
-  <p>Questions about privacy in Siraj? Email <a href="mailto:rltw.dev@gmail.com">rltw.dev@gmail.com</a>.</p>
-
-  <hr>
-  <footer>© 2026 · Siraj — Quran &amp; Prayer. This policy covers the Siraj app only.</footer>
+  <div id="doc"></div>
 </div>
+
+<script>
+/* Privacy policy content for the 8 languages Siraj ships in.
+   No contact section: Siraj operates no server and holds no personal data,
+   so there is nothing a user would contact us to access or delete. */
+var ORDER  = ['ar','en','id','ur','tr','fr','bn','ms'];
+var NATIVE = { ar:'العربية', en:'English', id:'Bahasa Indonesia', ur:'اردو',
+               tr:'Türkçe', fr:'Français', bn:'বাংলা', ms:'Bahasa Melayu' };
+var RTL = { ar:1, ur:1 };
+
+var DATA = {
+  en: {
+    h1:'Privacy Policy',
+    eff:'Quran &amp; Prayer · Last updated 25 June 2026',
+    lead:'Siraj is a privacy-first Islamic app. There is <strong>no account, no advertising, no analytics SDK, and no tracking of any kind</strong>. The Quran text, translation, transliteration, tafsir commentary, prayer-time calculation, Qibla direction, duas, Tasbih, the 99 Names, the Hijri calendar, and the memorization (Hifz) tools all run entirely offline on your device.',
+    s:[
+      ['What we collect','Nothing about you is collected on a server, because we operate no server that receives your personal data. Siraj has no sign-in. The notes, bookmarks, highlights, memorization progress, and settings you create stay on your device and are removed when you uninstall the app.'],
+      ['Location','Location (approximate, foreground-only) is requested for a single purpose: to calculate accurate prayer times and the Qibla direction for where you are. Your coordinates are used on your device and cached locally so the app keeps working offline; they are never uploaded to us or shared with anyone. Resolving a city name for display may use your device’s operating-system geocoder.'],
+      ['Notifications','Notifications are requested only if you keep adhan (prayer-time) alerts enabled. They are scheduled locally on the device with no network round-trip.'],
+      ['Audio recitation (the only optional online feature)','When you tap play on an ayah, the app streams that recitation from everyayah.com, a free public Quran-audio host; your request for that audio file goes to that host. No personal data is attached. All other content, including tafsir, is bundled in the app and needs no connection.'],
+      ['The optional one-time “Study Tools” purchase','Siraj is free, with no subscriptions and no ads. A single optional one-time purchase unlocks the Study Tools (verse-by-verse tafsir, every reciter, and offline audio downloads). Payment is processed by Google Play or the Apple App Store billing system, and we use RevenueCat to validate and remember the unlock. RevenueCat receives only an anonymous app-generated identifier and your entitlement (unlocked or not) — not your name, your location, or anything you read or memorize in the app.'],
+      ['Permissions','Siraj only requests a device permission when a feature you use requires it — location for prayer times and Qibla, and notifications for adhan alerts. Each is described above.'],
+      ['Children’s privacy','Siraj is suitable for all ages and does not knowingly collect personal information from anyone, including children. There is no account and no user-generated content shared with others.'],
+      ['Data security','Because your data never leaves your device, its security depends on your device’s own protections (screen lock, OS-level encryption). Any network requests Siraj makes (audio streaming, purchase validation) use HTTPS.'],
+      ['Your choices','You control everything locally: turn notifications or location off in your device settings at any time, and uninstall the app to remove all locally stored data. Because we hold no personal data on a server, there is nothing for us to delete on your behalf.'],
+      ['Changes','If this policy changes, the updated version will be posted at this address with a new “last updated” date.']
+    ],
+    footer:'© 2026 · Siraj — Quran &amp; Prayer. This policy covers the Siraj app only.'
+  },
+
+  ar: {
+    h1:'سياسة الخصوصية',
+    eff:'القرآن والصلاة · آخر تحديث 25 يونيو 2026',
+    lead:'سِراج تطبيق إسلامي يضع خصوصيتك أولاً. <strong>لا يوجد حساب، ولا إعلانات، ولا أدوات تحليل، ولا أي نوع من التتبّع.</strong> نصّ القرآن، والترجمة، والنقحرة، والتفسير، وحساب أوقات الصلاة، واتجاه القبلة، والأدعية، والتسبيح، والأسماء الحسنى التسعة والتسعون، والتقويم الهجري، وأدوات الحفظ، كلها تعمل بالكامل دون اتصال على جهازك.',
+    s:[
+      ['ما الذي نجمعه','لا يُجمع أي شيء عنك على أي خادم، لأننا لا نشغّل أي خادم يستقبل بياناتك الشخصية. لا يتطلّب سِراج تسجيل دخول. الملاحظات والإشارات المرجعية والتظليلات وتقدّم الحفظ والإعدادات التي تنشئها تبقى على جهازك وتُحذف عند إزالة التطبيق.'],
+      ['الموقع','يُطلب الموقع (تقريبي، أثناء الاستخدام فقط) لغرض واحد: حساب أوقات الصلاة الدقيقة واتجاه القبلة لمكانك. تُستخدم إحداثياتك على جهازك وتُخزَّن محليًا ليبقى التطبيق يعمل دون اتصال؛ ولا تُرفع إلينا أبدًا ولا تُشارَك مع أي أحد. وقد يُستخدم محدِّد المواقع في نظام تشغيل جهازك لعرض اسم المدينة.'],
+      ['الإشعارات','تُطلب الإشعارات فقط إذا أبقيت تنبيهات الأذان (أوقات الصلاة) مفعّلة. تُجدوَل محليًا على الجهاز دون أي اتصال بالشبكة.'],
+      ['تلاوة الصوت (الميزة الاختيارية الوحيدة التي تتطلب اتصالاً)','عند الضغط على تشغيل آية، يبثّ التطبيق تلك التلاوة من everyayah.com، وهو مضيف عام مجاني لصوت القرآن؛ يذهب طلبك لملف الصوت إلى ذلك المضيف. لا تُرفق أي بيانات شخصية. وجميع المحتويات الأخرى، بما فيها التفسير، مضمَّنة في التطبيق ولا تحتاج إلى اتصال.'],
+      ['عملية الشراء الاختيارية لمرة واحدة “أدوات الدراسة”','سِراج مجاني، بلا اشتراكات وبلا إعلانات. عملية شراء واحدة اختيارية لمرة واحدة تفتح أدوات الدراسة (التفسير آيةً آيةً، وكل القرّاء، وتنزيل الصوت للاستماع دون اتصال). تتم معالجة الدفع عبر نظام فوترة Google Play أو Apple App Store، ونستخدم RevenueCat للتحقق من الشراء وتذكّره. لا يتلقى RevenueCat سوى معرّف مجهول ينشئه التطبيق وحالة اشتراكك (مفتوح أو لا) — وليس اسمك ولا موقعك ولا أي شيء تقرؤه أو تحفظه في التطبيق.'],
+      ['الأذونات','لا يطلب سِراج إذنًا من الجهاز إلا عندما تتطلّبه ميزة تستخدمها — الموقع لأوقات الصلاة والقبلة، والإشعارات لتنبيهات الأذان. وكلٌّ منها موضّح أعلاه.'],
+      ['خصوصية الأطفال','سِراج مناسب لجميع الأعمار ولا يجمع عن علم أي معلومات شخصية من أي أحد، بمن فيهم الأطفال. لا يوجد حساب ولا أي محتوى ينشئه المستخدم ويُشارك مع الآخرين.'],
+      ['أمان البيانات','بما أنّ بياناتك لا تغادر جهازك أبدًا، فإنّ أمنها يعتمد على وسائل الحماية في جهازك نفسه (قفل الشاشة، التشفير على مستوى نظام التشغيل). وأي طلبات شبكة يجريها سِراج (بثّ الصوت، التحقق من الشراء) تستخدم HTTPS.'],
+      ['خياراتك','أنت تتحكم بكل شيء محليًا: أوقف الإشعارات أو الموقع من إعدادات جهازك في أي وقت، وأزل التطبيق لحذف جميع البيانات المخزَّنة محليًا. وبما أننا لا نحتفظ بأي بيانات شخصية على خادم، فليس لدينا ما نحذفه نيابةً عنك.'],
+      ['التغييرات','إذا تغيّرت هذه السياسة، ستُنشر النسخة المحدَّثة على هذا العنوان بتاريخ “آخر تحديث” جديد.']
+    ],
+    footer:'© 2026 · سِراج — القرآن والصلاة. تغطي هذه السياسة تطبيق سِراج فقط.'
+  },
+
+  id: {
+    h1:'Kebijakan Privasi',
+    eff:'Al-Qur’an &amp; Salat · Terakhir diperbarui 25 Juni 2026',
+    lead:'Siraj adalah aplikasi Islami yang mengutamakan privasi. <strong>Tidak ada akun, tidak ada iklan, tidak ada SDK analitik, dan tidak ada pelacakan dalam bentuk apa pun.</strong> Teks Al-Qur’an, terjemahan, transliterasi, tafsir, penghitungan waktu salat, arah kiblat, doa, Tasbih, 99 Asmaul Husna, kalender Hijriah, dan alat hafalan (Hifz) semuanya berjalan sepenuhnya luring di perangkat Anda.',
+    s:[
+      ['Apa yang kami kumpulkan','Tidak ada apa pun tentang Anda yang dikumpulkan di server, karena kami tidak mengoperasikan server yang menerima data pribadi Anda. Siraj tidak memiliki proses masuk. Catatan, markah, sorotan, kemajuan hafalan, dan pengaturan yang Anda buat tetap berada di perangkat Anda dan terhapus saat Anda mencopot aplikasi.'],
+      ['Lokasi','Lokasi (perkiraan, hanya saat aplikasi aktif) diminta untuk satu tujuan: menghitung waktu salat yang akurat dan arah kiblat sesuai tempat Anda. Koordinat Anda digunakan di perangkat Anda dan disimpan secara lokal agar aplikasi tetap berfungsi luring; data itu tidak pernah diunggah kepada kami atau dibagikan kepada siapa pun. Menampilkan nama kota mungkin menggunakan geocoder sistem operasi perangkat Anda.'],
+      ['Notifikasi','Notifikasi hanya diminta jika Anda mengaktifkan pengingat adzan (waktu salat). Notifikasi dijadwalkan secara lokal di perangkat tanpa koneksi jaringan.'],
+      ['Lantunan audio (satu-satunya fitur daring opsional)','Saat Anda menekan putar pada sebuah ayat, aplikasi mengalirkan lantunan itu dari everyayah.com, sebuah host audio Al-Qur’an publik gratis; permintaan berkas audio Anda dikirim ke host tersebut. Tidak ada data pribadi yang disertakan. Semua konten lain, termasuk tafsir, sudah terpaket dalam aplikasi dan tidak memerlukan koneksi.'],
+      ['Pembelian sekali bayar opsional “Alat Belajar”','Siraj gratis, tanpa langganan dan tanpa iklan. Satu pembelian sekali bayar opsional membuka Alat Belajar (tafsir ayat demi ayat, semua qari, dan unduhan audio luring). Pembayaran diproses oleh sistem penagihan Google Play atau Apple App Store, dan kami menggunakan RevenueCat untuk memvalidasi dan mengingat pembukaan tersebut. RevenueCat hanya menerima pengidentifikasi anonim yang dibuat aplikasi dan status hak Anda (terbuka atau tidak) — bukan nama, lokasi, atau apa pun yang Anda baca atau hafal dalam aplikasi.'],
+      ['Izin','Siraj hanya meminta izin perangkat saat fitur yang Anda gunakan membutuhkannya — lokasi untuk waktu salat dan kiblat, serta notifikasi untuk pengingat adzan. Masing-masing dijelaskan di atas.'],
+      ['Privasi anak','Siraj cocok untuk segala usia dan tidak dengan sengaja mengumpulkan informasi pribadi dari siapa pun, termasuk anak-anak. Tidak ada akun dan tidak ada konten buatan pengguna yang dibagikan kepada orang lain.'],
+      ['Keamanan data','Karena data Anda tidak pernah meninggalkan perangkat, keamanannya bergantung pada perlindungan perangkat Anda sendiri (kunci layar, enkripsi tingkat sistem operasi). Setiap permintaan jaringan yang dibuat Siraj (streaming audio, validasi pembelian) menggunakan HTTPS.'],
+      ['Pilihan Anda','Anda mengendalikan semuanya secara lokal: matikan notifikasi atau lokasi di pengaturan perangkat kapan saja, dan copot aplikasi untuk menghapus semua data yang tersimpan secara lokal. Karena kami tidak menyimpan data pribadi di server, tidak ada yang perlu kami hapus atas nama Anda.'],
+      ['Perubahan','Jika kebijakan ini berubah, versi yang diperbarui akan diposkan di alamat ini dengan tanggal “terakhir diperbarui” yang baru.']
+    ],
+    footer:'© 2026 · Siraj — Al-Qur’an &amp; Salat. Kebijakan ini hanya mencakup aplikasi Siraj.'
+  },
+
+  ur: {
+    h1:'رازداری کی پالیسی',
+    eff:'قرآن و نماز · آخری تازہ کاری 25 جون 2026',
+    lead:'سِراج رازداری کو اوّلیت دینے والی اسلامی ایپ ہے۔ <strong>نہ کوئی اکاؤنٹ ہے، نہ اشتہار، نہ کوئی اینالٹکس SDK، اور نہ کسی قسم کی ٹریکنگ۔</strong> قرآن کا متن، ترجمہ، نقل حرفی، تفسیر، نماز کے اوقات کا حساب، سمتِ قبلہ، دعائیں، تسبیح، اسمائے حسنیٰ (99 نام)، ہجری کیلنڈر، اور حفظ کے اوزار سب آپ کے آلے پر مکمل طور پر آف لائن چلتے ہیں۔',
+    s:[
+      ['ہم کیا جمع کرتے ہیں','آپ کے بارے میں کسی سرور پر کچھ بھی جمع نہیں کیا جاتا، کیونکہ ہم کوئی ایسا سرور نہیں چلاتے جو آپ کا ذاتی ڈیٹا وصول کرے۔ سِراج میں سائن اِن نہیں ہے۔ آپ کے بنائے ہوئے نوٹس، بُک مارکس، ہائی لائٹس، حفظ کی پیش رفت اور ترتیبات آپ کے آلے پر رہتے ہیں اور ایپ ان انسٹال کرنے پر ختم ہو جاتے ہیں۔'],
+      ['مقام','مقام (تخمینی، صرف استعمال کے دوران) صرف ایک مقصد کے لیے طلب کیا جاتا ہے: آپ کے مقام کے لیے درست نماز کے اوقات اور سمتِ قبلہ کا حساب لگانا۔ آپ کے کوآرڈینیٹس آپ کے آلے پر استعمال ہوتے ہیں اور مقامی طور پر محفوظ کیے جاتے ہیں تاکہ ایپ آف لائن کام کرتی رہے؛ یہ کبھی ہمیں اپ لوڈ نہیں کیے جاتے اور نہ کسی کے ساتھ شیئر کیے جاتے ہیں۔ شہر کا نام دکھانے کے لیے آپ کے آلے کا آپریٹنگ سسٹم جیوکوڈر استعمال ہو سکتا ہے۔'],
+      ['اطلاعات','اطلاعات صرف اسی صورت میں طلب کی جاتی ہیں جب آپ اذان (نماز کے وقت) کی یاد دہانیاں فعال رکھیں۔ یہ آلے پر مقامی طور پر شیڈول ہوتی ہیں، کسی نیٹ ورک رابطے کے بغیر۔'],
+      ['صوتی تلاوت (واحد اختیاری آن لائن خصوصیت)','جب آپ کسی آیت پر پلے دباتے ہیں تو ایپ وہ تلاوت everyayah.com سے اسٹریم کرتی ہے، جو قرآنی آڈیو کا مفت عوامی میزبان ہے؛ اُس آڈیو فائل کی آپ کی درخواست اُسی میزبان کو جاتی ہے۔ کوئی ذاتی ڈیٹا منسلک نہیں ہوتا۔ تفسیر سمیت باقی تمام مواد ایپ میں شامل ہے اور اسے کسی رابطے کی ضرورت نہیں۔'],
+      ['اختیاری ایک بار کی خریداری “مطالعہ کے اوزار”','سِراج مفت ہے، نہ کوئی سبسکرپشن نہ اشتہار۔ ایک اختیاری، ایک بار کی خریداری مطالعہ کے اوزار کھولتی ہے (آیت بہ آیت تفسیر، تمام قاری، اور آف لائن آڈیو ڈاؤن لوڈ)۔ ادائیگی Google Play یا Apple App Store کے بلنگ سسٹم سے ہوتی ہے، اور ہم خریداری کی توثیق اور یاد رکھنے کے لیے RevenueCat استعمال کرتے ہیں۔ RevenueCat کو صرف ایپ کا بنایا ہوا ایک گمنام شناخت کنندہ اور آپ کی حیثیت (کھلا ہے یا نہیں) ملتی ہے — آپ کا نام، مقام، یا ایپ میں آپ جو پڑھتے یا حفظ کرتے ہیں، کچھ نہیں۔'],
+      ['اجازتیں','سِراج آلے کی اجازت صرف اُسی وقت طلب کرتا ہے جب آپ کی استعمال کردہ کوئی خصوصیت اس کا تقاضا کرے — نماز کے اوقات اور قبلہ کے لیے مقام، اور اذان کی یاد دہانیوں کے لیے اطلاعات۔ ہر ایک کی وضاحت اوپر کی گئی ہے۔'],
+      ['بچوں کی رازداری','سِراج ہر عمر کے لیے موزوں ہے اور کسی سے بھی، بشمول بچوں، جان بوجھ کر ذاتی معلومات جمع نہیں کرتا۔ نہ کوئی اکاؤنٹ ہے اور نہ صارف کا بنایا ہوا کوئی مواد دوسروں کے ساتھ شیئر ہوتا ہے۔'],
+      ['ڈیٹا کی حفاظت','چونکہ آپ کا ڈیٹا کبھی آپ کے آلے سے باہر نہیں جاتا، اس کی حفاظت آپ کے اپنے آلے کے تحفظات (اسکرین لاک، آپریٹنگ سسٹم کی سطح کی خفیہ کاری) پر منحصر ہے۔ سِراج جو بھی نیٹ ورک درخواستیں کرتا ہے (آڈیو اسٹریمنگ، خریداری کی توثیق) وہ HTTPS استعمال کرتی ہیں۔'],
+      ['آپ کے اختیارات','آپ ہر چیز کو مقامی طور پر کنٹرول کرتے ہیں: کسی بھی وقت اپنے آلے کی ترتیبات سے اطلاعات یا مقام بند کریں، اور تمام مقامی طور پر محفوظ ڈیٹا ہٹانے کے لیے ایپ ان انسٹال کریں۔ چونکہ ہم کسی سرور پر آپ کا ذاتی ڈیٹا نہیں رکھتے، اس لیے آپ کی طرف سے حذف کرنے کو ہمارے پاس کچھ نہیں۔'],
+      ['تبدیلیاں','اگر یہ پالیسی تبدیل ہوتی ہے تو تازہ شدہ نسخہ نئی “آخری تازہ کاری” تاریخ کے ساتھ اسی پتے پر شائع کیا جائے گا۔']
+    ],
+    footer:'© 2026 · سِراج — قرآن و نماز۔ یہ پالیسی صرف سِراج ایپ پر لاگو ہوتی ہے۔'
+  },
+
+  tr: {
+    h1:'Gizlilik Politikası',
+    eff:'Kur’an &amp; Namaz · Son güncelleme 25 Haziran 2026',
+    lead:'Siraj, gizliliği önceleyen bir İslami uygulamadır. <strong>Hesap yok, reklam yok, analitik SDK yok ve hiçbir türde takip yok.</strong> Kur’an metni, meal, okunuş, tefsir, namaz vakti hesaplama, kıble yönü, dualar, Tesbih, 99 Esmaü’l-Hüsna, Hicri takvim ve ezberleme (Hıfz) araçlarının tümü cihazınızda tamamen çevrimdışı çalışır.',
+    s:[
+      ['Neyi topluyoruz','Hakkınızda hiçbir şey bir sunucuda toplanmaz, çünkü kişisel verilerinizi alan herhangi bir sunucu işletmiyoruz. Siraj’da oturum açma yoktur. Oluşturduğunuz notlar, yer imleri, vurgular, ezber ilerlemesi ve ayarlar cihazınızda kalır ve uygulamayı kaldırdığınızda silinir.'],
+      ['Konum','Konum (yaklaşık, yalnızca uygulama açıkken) tek bir amaç için istenir: bulunduğunuz yere göre doğru namaz vakitlerini ve kıble yönünü hesaplamak. Koordinatlarınız cihazınızda kullanılır ve uygulama çevrimdışı çalışmaya devam etsin diye yerel olarak önbelleğe alınır; bunlar bize asla yüklenmez ya da kimseyle paylaşılmaz. Şehir adını göstermek için cihazınızın işletim sistemi coğrafi kodlayıcısı kullanılabilir.'],
+      ['Bildirimler','Bildirimler yalnızca ezan (namaz vakti) uyarılarını etkin tutarsanız istenir. Cihazda yerel olarak, ağ bağlantısı olmadan zamanlanır.'],
+      ['Sesli tilavet (tek isteğe bağlı çevrimiçi özellik)','Bir ayette oynat’a dokunduğunuzda uygulama o tilaveti, ücretsiz ve kamuya açık bir Kur’an ses sunucusu olan everyayah.com’dan akışla getirir; o ses dosyası isteğiniz bu sunucuya gider. Hiçbir kişisel veri eklenmez. Tefsir dahil diğer tüm içerik uygulamanın içinde gelir ve bağlantı gerektirmez.'],
+      ['İsteğe bağlı tek seferlik “Çalışma Araçları” satın alımı','Siraj ücretsizdir; abonelik ve reklam yoktur. İsteğe bağlı tek seferlik tek bir satın alım Çalışma Araçları’nı açar (ayet ayet tefsir, tüm kariler ve çevrimdışı ses indirmeleri). Ödeme, Google Play veya Apple App Store faturalandırma sistemiyle işlenir ve satın almayı doğrulayıp hatırlamak için RevenueCat kullanırız. RevenueCat yalnızca uygulamanın oluşturduğu anonim bir tanımlayıcıyı ve hak durumunuzu (açık olup olmadığını) alır — adınızı, konumunuzu veya uygulamada okuduğunuz ya da ezberlediğiniz hiçbir şeyi değil.'],
+      ['İzinler','Siraj, yalnızca kullandığınız bir özellik gerektirdiğinde cihaz izni ister — namaz vakitleri ve kıble için konum, ezan uyarıları için bildirimler. Her biri yukarıda açıklanmıştır.'],
+      ['Çocukların gizliliği','Siraj her yaşa uygundur ve çocuklar dahil hiç kimseden bilerek kişisel bilgi toplamaz. Hesap yoktur ve başkalarıyla paylaşılan, kullanıcı tarafından oluşturulan içerik yoktur.'],
+      ['Veri güvenliği','Verileriniz cihazınızdan asla çıkmadığı için güvenliği, cihazınızın kendi korumalarına (ekran kilidi, işletim sistemi düzeyinde şifreleme) bağlıdır. Siraj’ın yaptığı her ağ isteği (ses akışı, satın alma doğrulaması) HTTPS kullanır.'],
+      ['Seçimleriniz','Her şeyi yerel olarak siz denetlersiniz: istediğiniz zaman cihaz ayarlarınızdan bildirimleri veya konumu kapatın ve yerel olarak depolanan tüm verileri kaldırmak için uygulamayı silin. Bir sunucuda kişisel verinizi tutmadığımız için sizin adınıza sileceğimiz bir şey yoktur.'],
+      ['Değişiklikler','Bu politika değişirse, güncellenmiş sürüm yeni bir “son güncelleme” tarihiyle bu adreste yayımlanır.']
+    ],
+    footer:'© 2026 · Siraj — Kur’an &amp; Namaz. Bu politika yalnızca Siraj uygulamasını kapsar.'
+  },
+
+  fr: {
+    h1:'Politique de confidentialité',
+    eff:'Coran &amp; Prière · Dernière mise à jour le 25 juin 2026',
+    lead:'Siraj est une application islamique qui place la confidentialité avant tout. <strong>Il n’y a aucun compte, aucune publicité, aucun SDK d’analyse et aucun suivi d’aucune sorte.</strong> Le texte du Coran, la traduction, la translittération, le tafsir, le calcul des heures de prière, la direction de la Qibla, les invocations, le Tasbih, les 99 noms, le calendrier hégirien et les outils de mémorisation (Hifz) fonctionnent tous entièrement hors ligne sur votre appareil.',
+    s:[
+      ['Ce que nous collectons','Rien vous concernant n’est collecté sur un serveur, car nous n’exploitons aucun serveur recevant vos données personnelles. Siraj n’a pas de connexion. Les notes, signets, surlignages, progrès de mémorisation et réglages que vous créez restent sur votre appareil et sont supprimés lorsque vous désinstallez l’application.'],
+      ['Localisation','La localisation (approximative, au premier plan uniquement) est demandée dans un seul but : calculer des heures de prière précises et la direction de la Qibla selon l’endroit où vous êtes. Vos coordonnées sont utilisées sur votre appareil et mises en cache localement pour que l’application continue de fonctionner hors ligne ; elles ne nous sont jamais transmises ni partagées avec quiconque. L’affichage du nom d’une ville peut faire appel au géocodeur du système d’exploitation de votre appareil.'],
+      ['Notifications','Les notifications ne sont demandées que si vous gardez activées les alertes d’adhan (heures de prière). Elles sont programmées localement sur l’appareil, sans aucun échange réseau.'],
+      ['Récitation audio (la seule fonctionnalité en ligne facultative)','Lorsque vous appuyez sur lecture pour un verset, l’application diffuse cette récitation depuis everyayah.com, un hébergeur public et gratuit d’audio coranique ; votre demande de ce fichier audio est envoyée à cet hébergeur. Aucune donnée personnelle n’y est jointe. Tout le reste du contenu, y compris le tafsir, est intégré à l’application et ne nécessite aucune connexion.'],
+      ['L’achat unique facultatif « Outils d’étude »','Siraj est gratuit, sans abonnement et sans publicité. Un seul achat unique facultatif débloque les Outils d’étude (tafsir verset par verset, tous les récitateurs et téléchargements audio hors ligne). Le paiement est traité par le système de facturation de Google Play ou de l’App Store d’Apple, et nous utilisons RevenueCat pour valider et mémoriser le déverrouillage. RevenueCat ne reçoit qu’un identifiant anonyme généré par l’application et votre droit d’accès (débloqué ou non) — ni votre nom, ni votre position, ni rien de ce que vous lisez ou mémorisez dans l’application.'],
+      ['Autorisations','Siraj ne demande une autorisation de l’appareil que lorsqu’une fonctionnalité que vous utilisez l’exige — la localisation pour les heures de prière et la Qibla, et les notifications pour les alertes d’adhan. Chacune est décrite ci-dessus.'],
+      ['Confidentialité des enfants','Siraj convient à tous les âges et ne collecte sciemment aucune information personnelle de quiconque, y compris des enfants. Il n’y a aucun compte ni aucun contenu créé par l’utilisateur partagé avec d’autres.'],
+      ['Sécurité des données','Comme vos données ne quittent jamais votre appareil, leur sécurité dépend des protections de votre propre appareil (verrouillage de l’écran, chiffrement au niveau du système d’exploitation). Toutes les requêtes réseau effectuées par Siraj (diffusion audio, validation d’achat) utilisent HTTPS.'],
+      ['Vos choix','Vous contrôlez tout localement : désactivez les notifications ou la localisation dans les réglages de votre appareil à tout moment, et désinstallez l’application pour supprimer toutes les données stockées localement. Comme nous ne détenons aucune donnée personnelle sur un serveur, nous n’avons rien à supprimer en votre nom.'],
+      ['Modifications','Si cette politique change, la version mise à jour sera publiée à cette adresse avec une nouvelle date de « dernière mise à jour ».']
+    ],
+    footer:'© 2026 · Siraj — Coran &amp; Prière. Cette politique couvre uniquement l’application Siraj.'
+  },
+
+  bn: {
+    h1:'গোপনীয়তা নীতি',
+    eff:'কুরআন ও নামাজ · সর্বশেষ হালনাগাদ ২৫ জুন ২০২৬',
+    lead:'সিরাজ একটি গোপনীয়তা-প্রথম ইসলামিক অ্যাপ। <strong>কোনো অ্যাকাউন্ট নেই, কোনো বিজ্ঞাপন নেই, কোনো অ্যানালিটিক্স SDK নেই, এবং কোনো ধরনের ট্র্যাকিং নেই।</strong> কুরআনের পাঠ, অনুবাদ, প্রতিবর্ণীকরণ, তাফসির, নামাজের সময় গণনা, কিবলার দিক, দোয়া, তাসবিহ, ৯৯টি নাম, হিজরি ক্যালেন্ডার এবং মুখস্থ (হিফজ) সরঞ্জাম—সবকিছুই আপনার ডিভাইসে সম্পূর্ণ অফলাইনে চলে।',
+    s:[
+      ['আমরা কী সংগ্রহ করি','আপনার সম্পর্কে কিছুই কোনো সার্ভারে সংগ্রহ করা হয় না, কারণ আপনার ব্যক্তিগত তথ্য গ্রহণ করে এমন কোনো সার্ভার আমরা চালাই না। সিরাজে কোনো সাইন-ইন নেই। আপনার তৈরি করা নোট, বুকমার্ক, হাইলাইট, মুখস্থের অগ্রগতি এবং সেটিংস আপনার ডিভাইসেই থাকে এবং অ্যাপ আনইনস্টল করলে মুছে যায়।'],
+      ['অবস্থান','অবস্থান (আনুমানিক, শুধু অ্যাপ চালু থাকা অবস্থায়) একটিমাত্র উদ্দেশ্যে চাওয়া হয়: আপনি যেখানে আছেন সেখানকার সঠিক নামাজের সময় ও কিবলার দিক গণনা করা। আপনার স্থানাঙ্ক আপনার ডিভাইসে ব্যবহৃত হয় এবং স্থানীয়ভাবে সংরক্ষিত থাকে যাতে অ্যাপটি অফলাইনে কাজ করতে পারে; এগুলো কখনো আমাদের কাছে আপলোড করা হয় না বা কারও সাথে শেয়ার করা হয় না। শহরের নাম দেখানোর জন্য আপনার ডিভাইসের অপারেটিং সিস্টেমের জিওকোডার ব্যবহৃত হতে পারে।'],
+      ['বিজ্ঞপ্তি','আপনি যদি আজান (নামাজের সময়) সতর্কতা সক্রিয় রাখেন কেবল তখনই বিজ্ঞপ্তির অনুমতি চাওয়া হয়। এগুলো কোনো নেটওয়ার্ক সংযোগ ছাড়াই ডিভাইসে স্থানীয়ভাবে নির্ধারিত হয়।'],
+      ['তিলাওয়াত অডিও (একমাত্র ঐচ্ছিক অনলাইন বৈশিষ্ট্য)','আপনি কোনো আয়াতে প্লে চাপলে অ্যাপটি সেই তিলাওয়াত everyayah.com থেকে স্ট্রিম করে, যা একটি বিনামূল্যের সর্বজনীন কুরআন-অডিও হোস্ট; সেই অডিও ফাইলের জন্য আপনার অনুরোধ ওই হোস্টে যায়। কোনো ব্যক্তিগত তথ্য সংযুক্ত হয় না। তাফসিরসহ বাকি সব বিষয়বস্তু অ্যাপের ভেতরেই দেওয়া আছে এবং এর জন্য কোনো সংযোগ লাগে না।'],
+      ['ঐচ্ছিক এককালীন “স্টাডি টুলস” ক্রয়','সিরাজ বিনামূল্যের, কোনো সাবস্ক্রিপশন বা বিজ্ঞাপন নেই। একটি ঐচ্ছিক এককালীন ক্রয় স্টাডি টুলস খুলে দেয় (আয়াত-ভিত্তিক তাফসির, সব ক্বারি, এবং অফলাইন অডিও ডাউনলোড)। পেমেন্ট Google Play বা Apple App Store-এর বিলিং সিস্টেমে প্রক্রিয়া করা হয়, এবং ক্রয় যাচাই ও মনে রাখার জন্য আমরা RevenueCat ব্যবহার করি। RevenueCat শুধু অ্যাপের তৈরি একটি বেনামি শনাক্তকারী এবং আপনার অধিকার (খোলা কি না) পায়—আপনার নাম, অবস্থান, বা অ্যাপে আপনি যা পড়েন বা মুখস্থ করেন তার কিছুই নয়।'],
+      ['অনুমতি','আপনি ব্যবহার করছেন এমন কোনো বৈশিষ্ট্যের প্রয়োজন হলে কেবল তখনই সিরাজ ডিভাইসের অনুমতি চায়—নামাজের সময় ও কিবলার জন্য অবস্থান, এবং আজান সতর্কতার জন্য বিজ্ঞপ্তি। প্রতিটি উপরে বর্ণিত হয়েছে।'],
+      ['শিশুদের গোপনীয়তা','সিরাজ সব বয়সের জন্য উপযোগী এবং শিশুসহ কারও কাছ থেকে জেনেশুনে ব্যক্তিগত তথ্য সংগ্রহ করে না। কোনো অ্যাকাউন্ট নেই এবং অন্যদের সাথে শেয়ার করা ব্যবহারকারী-তৈরি কোনো বিষয়বস্তু নেই।'],
+      ['তথ্য নিরাপত্তা','যেহেতু আপনার তথ্য কখনো আপনার ডিভাইস ছেড়ে যায় না, এর নিরাপত্তা আপনার ডিভাইসের নিজস্ব সুরক্ষার (স্ক্রিন লক, অপারেটিং সিস্টেম-স্তরের এনক্রিপশন) উপর নির্ভর করে। সিরাজ যেসব নেটওয়ার্ক অনুরোধ করে (অডিও স্ট্রিমিং, ক্রয় যাচাই) সেগুলো HTTPS ব্যবহার করে।'],
+      ['আপনার পছন্দ','আপনি সবকিছু স্থানীয়ভাবে নিয়ন্ত্রণ করেন: যেকোনো সময় আপনার ডিভাইস সেটিংসে বিজ্ঞপ্তি বা অবস্থান বন্ধ করুন, এবং স্থানীয়ভাবে সংরক্ষিত সব তথ্য মুছতে অ্যাপটি আনইনস্টল করুন। যেহেতু আমরা কোনো সার্ভারে আপনার ব্যক্তিগত তথ্য রাখি না, আপনার পক্ষে মুছে ফেলার মতো আমাদের কাছে কিছু নেই।'],
+      ['পরিবর্তন','এই নীতি পরিবর্তিত হলে, হালনাগাদ সংস্করণটি একটি নতুন “সর্বশেষ হালনাগাদ” তারিখসহ এই ঠিকানায় প্রকাশ করা হবে।']
+    ],
+    footer:'© 2026 · সিরাজ — কুরআন ও নামাজ। এই নীতি কেবল সিরাজ অ্যাপের জন্য প্রযোজ্য।'
+  },
+
+  ms: {
+    h1:'Dasar Privasi',
+    eff:'Al-Quran &amp; Solat · Kemas kini terakhir 25 Jun 2026',
+    lead:'Siraj ialah aplikasi Islam yang mengutamakan privasi. <strong>Tiada akaun, tiada iklan, tiada SDK analitik, dan tiada sebarang penjejakan.</strong> Teks Al-Quran, terjemahan, transliterasi, tafsir, pengiraan waktu solat, arah Kiblat, doa, Tasbih, 99 Nama, kalendar Hijrah, dan alat hafalan (Hifz) semuanya berjalan sepenuhnya luar talian pada peranti anda.',
+    s:[
+      ['Apa yang kami kumpulkan','Tiada apa-apa tentang anda dikumpulkan pada pelayan, kerana kami tidak mengendalikan pelayan yang menerima data peribadi anda. Siraj tiada log masuk. Nota, penanda buku, sorotan, kemajuan hafalan, dan tetapan yang anda cipta kekal pada peranti anda dan dipadamkan apabila anda menyahpasang aplikasi.'],
+      ['Lokasi','Lokasi (anggaran, hanya semasa aplikasi aktif) diminta untuk satu tujuan: mengira waktu solat yang tepat dan arah Kiblat bagi tempat anda berada. Koordinat anda digunakan pada peranti anda dan disimpan secara setempat supaya aplikasi terus berfungsi luar talian; ia tidak pernah dimuat naik kepada kami atau dikongsi dengan sesiapa. Memaparkan nama bandar mungkin menggunakan geocoder sistem pengendalian peranti anda.'],
+      ['Pemberitahuan','Pemberitahuan hanya diminta jika anda mengekalkan amaran azan (waktu solat) didayakan. Ia dijadualkan secara setempat pada peranti tanpa sambungan rangkaian.'],
+      ['Bacaan audio (satu-satunya ciri dalam talian pilihan)','Apabila anda menekan main pada sesuatu ayat, aplikasi menstrim bacaan itu dari everyayah.com, sebuah hos audio Al-Quran awam percuma; permintaan fail audio anda dihantar ke hos tersebut. Tiada data peribadi disertakan. Semua kandungan lain, termasuk tafsir, terangkum dalam aplikasi dan tidak memerlukan sambungan.'],
+      ['Pembelian sekali bayar pilihan “Alat Pembelajaran”','Siraj adalah percuma, tanpa langganan dan tanpa iklan. Satu pembelian sekali bayar pilihan membuka Alat Pembelajaran (tafsir ayat demi ayat, semua qari, dan muat turun audio luar talian). Pembayaran diproses oleh sistem pengebilan Google Play atau Apple App Store, dan kami menggunakan RevenueCat untuk mengesahkan dan mengingati pembukaan itu. RevenueCat hanya menerima pengecam tanpa nama yang dijana aplikasi dan kelayakan anda (dibuka atau tidak) — bukan nama, lokasi, atau apa-apa yang anda baca atau hafal dalam aplikasi.'],
+      ['Kebenaran','Siraj hanya meminta kebenaran peranti apabila ciri yang anda gunakan memerlukannya — lokasi untuk waktu solat dan Kiblat, dan pemberitahuan untuk amaran azan. Setiap satu diterangkan di atas.'],
+      ['Privasi kanak-kanak','Siraj sesuai untuk semua peringkat umur dan tidak mengumpulkan maklumat peribadi daripada sesiapa pun dengan sengaja, termasuk kanak-kanak. Tiada akaun dan tiada kandungan ciptaan pengguna yang dikongsi dengan orang lain.'],
+      ['Keselamatan data','Oleh sebab data anda tidak pernah meninggalkan peranti anda, keselamatannya bergantung pada perlindungan peranti anda sendiri (kunci skrin, penyulitan peringkat sistem pengendalian). Sebarang permintaan rangkaian yang dibuat Siraj (penstriman audio, pengesahan pembelian) menggunakan HTTPS.'],
+      ['Pilihan anda','Anda mengawal segalanya secara setempat: matikan pemberitahuan atau lokasi dalam tetapan peranti anda pada bila-bila masa, dan nyahpasang aplikasi untuk membuang semua data yang disimpan secara setempat. Oleh sebab kami tidak menyimpan data peribadi pada pelayan, tiada apa-apa untuk kami padamkan bagi pihak anda.'],
+      ['Perubahan','Jika dasar ini berubah, versi yang dikemas kini akan disiarkan di alamat ini dengan tarikh “kemas kini terakhir” yang baharu.']
+    ],
+    footer:'© 2026 · Siraj — Al-Quran &amp; Solat. Dasar ini meliputi aplikasi Siraj sahaja.'
+  }
+};
+
+function render(lang){
+  var d = DATA[lang];
+  var rtl = !!RTL[lang];
+  var html = '<div dir="' + (rtl ? 'rtl' : 'ltr') + '">';
+  html += '<h1>' + d.h1 + '</h1>';
+  html += '<p class="eff">' + d.eff + '</p>';
+  html += '<p class="lead">' + d.lead + '</p>';
+  for (var i = 0; i < d.s.length; i++){
+    html += '<h2>' + d.s[i][0] + '</h2><p>' + d.s[i][1] + '</p>';
+  }
+  html += '<hr><footer>' + d.footer + '</footer>';
+  html += '</div>';
+  document.getElementById('doc').innerHTML = html;
+  document.documentElement.lang = lang;
+  document.documentElement.dir = rtl ? 'rtl' : 'ltr';
+
+  var btns = document.querySelectorAll('#tabs button');
+  for (var j = 0; j < btns.length; j++){
+    btns[j].setAttribute('aria-selected', btns[j].dataset.lang === lang ? 'true' : 'false');
+  }
+  if (history.replaceState) history.replaceState(null, '', '#' + lang);
+}
+
+(function init(){
+  var tabs = document.getElementById('tabs');
+  for (var i = 0; i < ORDER.length; i++){
+    (function(lang){
+      var b = document.createElement('button');
+      b.textContent = NATIVE[lang];
+      b.dataset.lang = lang;
+      b.setAttribute('role', 'tab');
+      b.setAttribute('lang', lang);
+      if (RTL[lang]) b.setAttribute('dir', 'rtl');
+      b.onclick = function(){ render(lang); };
+      tabs.appendChild(b);
+    })(ORDER[i]);
+  }
+  var start = (location.hash || '').replace('#', '');
+  if (!DATA[start]) start = 'en';
+  render(start);
+})();
+</script>
 </body>
 </html>
