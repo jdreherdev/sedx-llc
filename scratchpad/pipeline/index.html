@@ -292,39 +292,48 @@ const KINDS = {
 // truth; everything else (version, next-steps, store status) is live. Update an
 // entry when an app advances a stage, then it re-renders on next load.
 const PLACEMENT = {
+  // audited 2026-07-02 against live KV (dashboard-ios-versions / dashboard-play-live)
   rangerhandbook:      { stage: 'live',     kind: 'reference' },
   buglenotescadet:     { stage: 'live',     kind: 'reference' },
   mutcd:               { stage: 'maintain', kind: 'reference' },
   counted:             { stage: 'live',     kind: 'utility' },
   videotimer:          { stage: 'live',     kind: 'utility' },
-  fmlibrary:           { stage: 'review',   kind: 'reference' },
+  fmlibrary:           { stage: 'live',     kind: 'reference' },   // Play prod live; iOS rejected→resubmit
   armybranchhandbooks: { stage: 'live',     kind: 'reference' },
-  combatmedic:         { stage: 'live',     kind: 'reference' },
+  armysurvival:        { stage: 'maintain', kind: 'reference' },
+  combatmedic:         { stage: 'live',     kind: 'reference' },   // iOS live; 1.0.7 in review
   icsfieldguide:       { stage: 'live',     kind: 'reference' },
   abrahamicapp:        { stage: 'live',     kind: 'reference' },
-  sorted:              { stage: 'live',     kind: 'utility' },
-  canieatit:           { stage: 'testing',  kind: 'nature' },
-  trailready:          { stage: 'build',    kind: 'nature' },
+  sorted:              { stage: 'testing',  kind: 'utility' },     // Play internal only
+  canieatit:           { stage: 'review',   kind: 'nature' },      // pulled from iOS review, key rebuild
+  whatisthis:          { stage: 'review',   kind: 'nature' },      // pulled from iOS review, key rebuild
+  skyline:             { stage: 'review',   kind: 'nature' },      // pulled from iOS review, key rebuild
+  rockid:              { stage: 'review',   kind: 'nature' },      // pulled from iOS review, key rebuild
+  trailready:          { stage: 'review',   kind: 'nature' },      // → "Trail Companion"; Play prod staged + iOS submit gate
   // outdoor concepts — re-skins of the shared survival-core + ID + offline-nav modules
-  trailcompanion:      { stage: 'concept',  kind: 'nature' },
+  // (Trail Companion concept was realized as the TrailReady rebrand)
   wildforager:         { stage: 'concept',  kind: 'nature' },
   campbushcraft:       { stage: 'concept',  kind: 'nature' },
   wildside:            { stage: 'live',     kind: 'nature' },
-  coxswainhq:          { stage: 'review',   kind: 'utility' },
+  coxswainhq:          { stage: 'live',     kind: 'utility' },     // iOS 1.0.10 live; 1.0.11 fix in review
   mathsprout:          { stage: 'testing',  kind: 'utility' },
   helicopterpilot:     { stage: 'live',     kind: 'utility' },
   robertsrules:        { stage: 'live',     kind: 'reference' },
-  pdfkit:              { stage: 'build',    kind: 'utility' },
-  drift:               { stage: 'testing',  kind: 'utility' },
-  scanly:              { stage: 'testing',  kind: 'utility' },
-  settled:             { stage: 'testing',  kind: 'utility' },
-  leafy:               { stage: 'build',    kind: 'nature' },
-  noorsiraj:           { stage: 'scaffold', kind: 'reference' },
-  kioskhq:             { stage: 'testing',  kind: 'utility' },
+  pdfkit:              { stage: 'review',   kind: 'utility' },     // iOS waiting review after 3.1.1 fix
+  drift:               { stage: 'live',     kind: 'utility' },     // iOS 1.0.0 live
+  scanly:              { stage: 'review',   kind: 'utility' },     // iOS in review (2.1(b) rebuild)
+  settled:             { stage: 'review',   kind: 'utility' },     // iOS in review (2.1(b) rebuild)
+  leafy:               { stage: 'review',   kind: 'nature' },      // iOS in review (2.1(b) rebuild)
+  noorsiraj:           { stage: 'review',   kind: 'reference' },   // iOS build 6 resubmitted; Play prod staged
+  kioskhq:             { stage: 'review',   kind: 'utility' },     // Play prod staged, listing gated
   apogee:              { stage: 'testing',  kind: 'utility' },
   cutinhalf:           { stage: 'maintain', kind: 'game' },
   sidelinehq:          { stage: 'maintain', kind: 'web' },
+  teamhq:              { stage: 'build',    kind: 'utility' },     // SidelineHQ mobile; iOS preparing
   trackhq:             { stage: 'build',    kind: 'web' },
+  bubblesnap:          { stage: 'live',     kind: 'utility' },     // iOS live, IAP approved 07-02
+  preparedscout:       { stage: 'testing',  kind: 'reference' },   // Play internal vc4
+  cloudspotter:        { stage: 'build',    kind: 'nature' },      // not on stores yet
 };
 
 // Fallback stage inference from the action-item note, for apps not in PLACEMENT.
@@ -359,7 +368,9 @@ function buildApps(ai, dash) {
     if (a.androidPackage) dashByName[norm(a.androidPackage.split('.').pop())] = a;
   });
 
-  return (ai?.groups || []).map(g => {
+  // Non-app groups (cross-cutting checklists) don't belong on a per-app board.
+  const SKIP = new Set(['crosssuite']);
+  return (ai?.groups || []).filter(g => !SKIP.has(norm(g.app))).map(g => {
     const p = placementFor(g.app);
     const stage = p.stage || inferStage(g.note);
     const verMatch = (g.note || '').match(/v?\d+\.\d+(\.\d+)?/);
